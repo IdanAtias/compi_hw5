@@ -1,0 +1,23 @@
+	while(true)
+	{
+		print "#25) contribute to our plague.";
+		while(not false)
+		{
+			print "#26) Break all your promises";
+			while(2 < 2 or 1 > 2 or 3<4)
+			{
+				print "#27) tear down this steadfast wall,";
+				while(6 >= 6)
+				{
+					break;
+				}
+				break;
+			}
+			print "#28) restraints are useless here,";
+			break;
+		}
+		break;
+	}
+	print "#29) tasting salvation's near.";
+	if(true) { int comTruise; }
+	else { int comTruise; }

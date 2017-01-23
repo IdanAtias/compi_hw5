@@ -1,0 +1,30 @@
+#!/bin/bash
+i=0
+for tst in t{[1-9],10,11,12,13}.in; do
+
+	if [[ -f $tst ]]; then
+	
+		((i++))
+		echo -n $i"."
+		cat $tst | head -1 | cut -c3-
+			
+		./ex5.exe t$i.in > t$i.out
+		
+		if [[ $i -ge 4 && $i -le 7 || $i -eq 10 || $i -eq 11 || $i -eq 12 || $i -eq 13 ]]; then
+			if [[ `cat t$i.out` != "SEMANTIC ERROR" ]]; then
+				echo "FAIL"
+				continue;
+			else
+				echo "OK"
+			fi	
+		fi	
+		
+		
+		
+		./bvm.pl t$i.out
+
+		
+	fi
+	
+done
+

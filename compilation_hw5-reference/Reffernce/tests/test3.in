@@ -1,0 +1,31 @@
+NIS jangelinaOlie;
+	jangelinaOlie = 17 NIS;
+	AGORA pradBitt = 100 AGORA;
+	if (jangelinaOlie > 17 NIS)
+		print "Error #3";
+	else
+		print "#4) Nothing tears the being more than deception,";
+	while (jangelinaOlie < 8 NIS)
+		print "Error #4";
+	while (jangelinaOlie >= 16 NIS)
+	{
+		if (jangelinaOlie == 17 NIS)
+			print "#5) unmasked fear.";
+		else
+		{
+			if (jangelinaOlie == 16 NIS)
+			{
+				print "#6) 'I'll be here waiting' tested and secure.";
+			}
+			else
+				print "Error #5";
+		}
+		AGORA pradBitt = 100 AGORA;
+		jangelinaOlie = jangelinaOlie - pradBitt;
+	}
+	while (jangelinaOlie > 0 AGORA)
+		jangelinaOlie = jangelinaOlie / 3;
+	if (jangelinaOlie > 0 AGORA)
+		print "Error #6";
+	else
+		print "#7) Nothing hurts my world,";

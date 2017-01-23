@@ -1,0 +1,15 @@
+{
+	int sum=0;
+	matrix mat(2,3)=[1,2,3;4,5,6];
+	foreach (i in [1,2,3;4,5,6])
+		print i;
+	foreach (i in mat)
+	{
+		print "adding: ";
+		int temp = i*i;
+		print temp;
+		sum = sum+(i*i);
+	}
+	print "sum of squares (1+4+9+16+25+36): ";
+	print sum;
+}

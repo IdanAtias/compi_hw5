@@ -1,0 +1,15 @@
+#!/bin/bash
+make
+for i in {1..7}
+do
+	echo Running uri${i}.in
+	./ex5.exe < uri${i}.in > temp
+	if [ -f "uri${i}.input" ]; then
+		./bvm.pl temp < uri${i}.input > uri${i}.result 
+	else
+		./bvm.pl temp > uri${i}.result
+	fi
+	echo "diff results (expected vs. actual):"
+	diff uri${i}.final uri${i}.result
+	
+done

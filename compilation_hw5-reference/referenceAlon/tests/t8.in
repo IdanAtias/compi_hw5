@@ -1,0 +1,47 @@
+// scope 2
+{
+	int x = 1;
+	{int y = x;
+		int z = x;
+		{
+			int y = 2;
+			z = 11;
+		}
+		
+		if (y != x || z != 11) {
+			print "FAIL";
+		}
+		int x = 9;
+	}
+
+	int w = 1;
+	int v = 10;
+	while (w != v) {
+		w = w + 1;
+		int x = v + w;		
+	}
+	
+
+	
+	if (w != v) {
+		print "FAIL";
+	}
+
+		matrix a(3,3) = [1,2,3; 4, 5, 6; 7, 8, 9];
+	foreach (y in a) {
+		int x = y;
+	}
+
+	if (x == 1) {
+		print "OK";
+	}
+	else {
+		print "FAIL";
+	}
+	
+	
+	
+	
+	
+	
+}

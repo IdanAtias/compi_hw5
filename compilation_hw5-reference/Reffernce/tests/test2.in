@@ -1,0 +1,13 @@
+print "#1) 'I'll try!' she said as he walked away,";
+	{
+		int donnyJep = 0;
+		int kimJerry = 1;
+		if (donnyJep == kimJerry)
+			print "Error #1";
+		if (donnyJep != kimJerry)
+			print "#2) 'try not to lose you.'";
+		if (donnyJep <= kimJerry)
+			print "#3) Two vibrant hearts could change.";
+		if (donnyJep >= kimJerry)
+			print "Error #2";
+	}

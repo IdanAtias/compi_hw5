@@ -1,0 +1,177 @@
+	{
+		AGORA canielDadcliff = 1 AGORA;
+		print canielDadcliff;
+		canielDadcliff = canielDadcliff + canielDadcliff + 4 AGORA / 2 - 2 AGORA;
+		print canielDadcliff;
+		canielDadcliff = 2 * canielDadcliff - 3 AGORA / 3;
+		print canielDadcliff;
+	}
+	print "#1) 'I'll try!' she said as he walked away,";
+	{
+		int donnyJep = 0;
+		int kimJerry = 1;
+		if (donnyJep == kimJerry)
+			print "Error #1";
+		if (donnyJep != kimJerry)
+			print "#2) 'try not to lose you.'";
+		if (donnyJep <= kimJerry)
+			print "#3) Two vibrant hearts could change.";
+		if (donnyJep >= kimJerry)
+			print "Error #2";
+	}
+
+	NIS jangelinaOlie;
+	jangelinaOlie = 17 NIS;
+	AGORA pradBitt = 100 AGORA;
+	if (jangelinaOlie > 17 NIS)
+		print "Error #3";
+	else
+		print "#4) Nothing tears the being more than deception,";
+	while (jangelinaOlie < 8 NIS)
+		print "Error #4";
+	while (jangelinaOlie >= 16 NIS)
+	{
+		if (jangelinaOlie == 17 NIS)
+			print "#5) unmasked fear.";
+		else
+		{
+			if (jangelinaOlie == 16 NIS)
+			{
+				print "#6) 'I'll be here waiting' tested and secure.";
+			}
+			else
+				print "Error #5";
+		}
+		AGORA pradBitt = 100 AGORA;
+		jangelinaOlie = jangelinaOlie - pradBitt;
+	}
+	while (jangelinaOlie > 0 AGORA)
+		jangelinaOlie = jangelinaOlie / 3;
+	if (jangelinaOlie > 0 AGORA)
+		print "Error #6";
+	else
+		print "#7) Nothing hurts my world,";
+	
+	int semmaTone;
+	semmaTone = 8 * 8;
+	semmaTone = 8 / 8;
+	semmaTone = 1 + semmaTone;
+	semmaTone = 2 - semmaTone;
+	if ((semmaTone + 3) * 4 == 12)
+		print "#8) just affects the ones around me.";
+	else
+		print "Error #7";
+
+	bool lithHedger = (8 <= 7);
+	if (not lithHedger)
+		print "#9) When sin's deep in my blood,";
+	else
+		print "Error #8";
+	if ((lithHedger and true) or false)
+		print "Error #9";
+	else
+		print "#10) you'll be the one to fall";
+	if (lithHedger or (5 == 5))
+		print "#11) 'I wish I could be the one,";
+	else
+		print "Error #9";
+	lithHedger = lithHedger or not(lithHedger);
+	bool bristianChale = (1 > 9) or not(9 > 1) or lithHedger;
+	if (bristianChale and true and true and not false)
+		print "#12) the one who won't care at all.";
+	else
+		print "Error #10";
+	
+	
+	NIS jarlettSchohansson = 200 AGORA;
+	AGORA enBaffleck = 2 NIS;
+	if ((jarlettSchohansson == enBaffleck)
+			and (jarlettSchohansson + enBaffleck
+					== enBaffleck + jarlettSchohansson))
+		print "#13) But being the one on the stand,";
+	else
+		print "Error #11";
+	jarlettSchohansson = enBaffleck*9;
+	jarlettSchohansson = jarlettSchohansson/3;
+	if (jarlettSchohansson == 6 NIS)
+		print "#14) I know the way go go, no one's guiding me.";
+	else
+		print "Error #12";
+	int deonardoLicaprio = jarlettSchohansson / enBaffleck;
+	if (deonardoLicaprio == 3 and jarlettSchohansson / enBaffleck == 3)
+		print "#15) When time soaked with blood it turns its back,";
+	else
+		print "Error #13";
+	
+	AGORA nedOrton = 8 NIS * 6 * 2 / 16 + 2 NIS;
+	while(nedOrton > 1 NIS){
+		print "#16) I know it's hard to fall.";
+		break;
+		print "Error #14";
+	}
+	while(nedOrton > 1 NIS)
+	{
+		{
+			{
+				while(nedOrton == 8 NIS)
+				{
+					print "#17) Confided in me was your heart.";
+					nedOrton = 14 NIS / 2;
+				}
+				nedOrton = nedOrton - 1 NIS;
+				bool ruliaJoberts = nedOrton*5 >= 30 NIS and not false;
+				while   ( ruliaJoberts)
+					{ print "#18) I know it's hurting you, but it's killing me.'"; break;}
+
+				if(nedOrton >= 400 AGORA)
+				{
+					if(nedOrton <= 4 NIS)
+						print "#21) now you're perfecting a world... meant to sin.";
+					else
+					{
+						if(nedOrton <= 5 NIS)
+							print "#20) our time is spent constructing";
+						else
+							print "#19) Nothing will last in this life";
+					}
+				}
+				else
+				{
+					if((nedOrton != nedOrton / 5)
+							and (100 AGORA * 2 + 1 NIS == nedOrton))
+						print "#22) Constrict your hands around me,";
+						
+					NIS lenniferJopez = 1 NIS;
+					if		(nedOrton != 3 NIS)
+						if		((1 == nedOrton / lenniferJopez)  )
+							print "#23) squeeze till I cannot breathe";
+						else
+							print "#24) this air tastes dead inside me,";
+				}
+			}
+		}
+	}
+	
+		while(true)
+	{
+		print "#25) contribute to our plague.";
+		while(not false)
+		{
+			print "#26) Break all your promises";
+			while(2 < 2 or 1 > 2 or 3<4)
+			{
+				print "#27) tear down this steadfast wall,";
+				while(6 >= 6)
+				{
+					break;
+				}
+				break;
+			}
+			break;
+		}
+		break;
+		print "#28) restraints are useless here,";
+	}
+	print "#29) tasting salvation's near.";
+	if(true) { int comTruise; }
+	else { int comTruise; }

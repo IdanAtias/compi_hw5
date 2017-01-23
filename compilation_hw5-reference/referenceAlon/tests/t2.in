@@ -1,0 +1,33 @@
+// Dangling Else
+{
+int test = 0;
+
+if (false)
+	if (false)
+	print "FAIL";
+	else
+	print "OK";
+	
+	if (false)
+	 if (true) 
+		print "FAIL";
+		else 
+		print "FAIL";
+			
+	if(true)
+		if(false)
+		print "FAIL";
+		 else 
+		 test = 1;
+	else
+	print "FAIL";	 
+		
+			
+	if (false || test != 1) {
+	 if (true) 
+		print "FAIL";
+	}
+		else 
+		print "OK";
+
+}

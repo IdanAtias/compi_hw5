@@ -1,0 +1,918 @@
+%{
+	#include <iostream>
+	#include <stdio.h>
+	#include <map>
+	#include <list>
+    #include "hw5.hpp"
+    #include "bp.hpp"
+    #include <vector>
+    
+    extern vector <string> buffer;
+    
+    int yylex();
+    void yyerror(const char*);
+    void new_scope();
+    void close_scope();
+    void trueBool(STYPE& src);
+    void falseBool(STYPE& src);
+    void passBool(STYPE& src, STYPE target);
+	void orBool(STYPE& src, STYPE arg1, STYPE marker, STYPE arg2);
+	void andBool(STYPE& src, STYPE arg1, STYPE marker, STYPE arg2);
+	void notBool(STYPE& src, STYPE arg);
+	void relOpBool(STYPE& src, STYPE arg1, STYPE relOp, STYPE arg2);
+	void ifSemantic(STYPE& statement, STYPE booleanArg, STYPE marker, STYPE s1);
+	void ifElseSemantic(STYPE& statement, STYPE booleanArg, STYPE marker1, STYPE s1, STYPE n_marker, STYPE marker2, STYPE s2);
+	void whileSemantic(STYPE& statement, STYPE marker1, STYPE booleanArg, STYPE marker2, STYPE s1);
+    void print(STYPE source);
+    void assign(STYPE destination, STYPE source);
+    void new_int(string varName);
+    void new_int(string varName, STYPE value);
+    void new_matrix(string varName, int x, int y);
+    void new_matrix(string varName, int x, int y, STYPE value);
+    bool variable_exists(string varName);
+    STYPE* find_var(string varName);
+    Type get_type(string varName);
+    int get_location(string varName);
+    int get_matrix_item_location(string varName, int x, int y);
+    int get_x(string varName);
+    int get_y(string varName);
+    STYPE arith_mult(STYPE x1, STYPE x2);
+    STYPE arith_plus_minus(STYPE x1, STYPE op, STYPE x2);
+    STYPE arith_division(STYPE x1, STYPE x2);
+    void read(STYPE id);
+    
+    list<map<string, STYPE> > vars;
+    list<int> vars_per_scope_counter;
+    list<int> current_iterator_index;
+    list<int> current_iterator_counter;
+    list<int> current_iterator_goto_list;
+    int next_free_location = 0;
+    int last_expression_location = 0;
+%}
+
+%token PRINT READ IF TRUE FALSE NUM STRING ID LP LB RB LC RC CS SC TYPE_INT TYPE_MATRIX WHILE FOREACH IN
+%right ELSE RP
+%left LOGIC_OP_OR
+%left LOGIC_OP_AND
+%right NOT
+%left REL_OP SC
+%left ARITH_OP_PLUS_MINUS
+%left ARITH_OP_MULT
+%left ARITH_OP_DIVISION
+%right ASSIGN
+
+%%
+
+Prog : Stmt M { bp($1.nextList, $2.quad); }
+;
+
+Stmt : TYPE_INT PreInit_INT	SC														{ /* nothing important to do here */ }
+	| TYPE_MATRIX PreInit_MATRIX SC													{ /* nothing important to do here */ }
+	| Lvalue ASSIGN Exp	SC															{ assign($1, $3); }
+	| PRINT OutputSpecifier	SC														{ print($2); }
+	| READ ID SC																	{ read($2); }
+	| IF LP Bool RP NewScope M Stmt CloseScope 										{ ifSemantic($$, $3, $6, $7); }
+	| IF LP Bool RP NewScope M Stmt CloseScope ELSE NewScope N M Stmt CloseScope 	{ ifElseSemantic($$, $3, $6, $7, $11, $12, $13); }
+	| WHILE LP M Bool RP NewScope M Stmt CloseScope									{ whileSemantic($$, $3, $4, $7, $8); }
+	| FOREACH LP ID IN Exp RP { 
+		current_iterator_counter.push_back(next_free_location);
+		ostringstream counter;
+		counter << newTemp() <<"=0";
+		emit(counter.str());
+		
+		current_iterator_index.push_back(next_free_location);
+		new_scope();
+		new_int($3.string_val);
+		
+		current_iterator_goto_list.push_back(next());
+		
+		int x = $5.matrix_x;
+		int y = $5.matrix_y;
+		list<int> begin_loop;
+		
+		for (int i = 0 ; i<x*y ; i++)
+		{
+			ostringstream os;
+			os << "s[" << current_iterator_index.back() << "]=s[" << last_expression_location + i<< "]";
+			emit(os.str());
+			
+			begin_loop.push_back(next());
+			ostringstream go_to;
+			go_to << "goto ";
+			emit(go_to.str());
+		}
+
+		bp(begin_loop, next());
+		
+		new_scope();
+		
+		} Stmt { 
+			if ($5.type != Matrix_type) { errSem(); } 
+			close_scope();
+
+			int x = $5.matrix_x;
+			int y = $5.matrix_y;
+			
+			ostringstream increment;
+			increment << "s[" << current_iterator_counter.back() << "]=" << "s[" << current_iterator_counter.back() << "] + 1";
+			emit(increment.str());
+			
+			for (int i=1 ; i<x*y ; i++)
+			{
+				ostringstream jump_back;
+				jump_back << "if s[" << current_iterator_counter.back() << "] == " << i << " goto " << 
+					current_iterator_goto_list.back() + 2*i;
+				emit(jump_back.str());
+			}
+			
+			close_scope();
+			current_iterator_index.pop_back();
+			current_iterator_counter.pop_back();
+			current_iterator_goto_list.pop_back();
+		}
+	| LC NewScope Scope RC CloseScope
+;
+
+NewScope : { new_scope(); };
+
+CloseScope : { close_scope(); };
+
+Scope : Stmt			{ bp($1.nextList, next()); $$.nextList = $1.nextList; }
+	| Stmt M Scope		{ bp($1.nextList, $2.quad); $$.nextList = merge($1.nextList, $2.nextList); }
+;
+
+PreInit_INT: Init_INT
+	| Init_INT CS PreInit_INT
+;
+
+PreInit_MATRIX: Init_MATRIX
+	| Init_MATRIX CS PreInit_MATRIX
+;
+
+Init_INT : ID { new_int($1.string_val); }
+	| ID ASSIGN Exp { new_int($1.string_val, $3); }
+;
+
+Init_MATRIX : ID LP Exp CS Exp RP { if (!($3.is_const) || !($5.is_const))
+		{	
+			errSem();
+		} 
+		new_matrix($1.string_val, $3.int_val, $5.int_val); }
+	| ID LP Exp CS Exp RP ASSIGN Exp { if (!($3.is_const) || !($5.is_const))
+		{	
+			errSem();
+		} 
+		new_matrix($1.string_val, $3.int_val, $5.int_val, $8); }
+;
+
+Exp : Exp ARITH_OP_MULT Exp { STYPE result = arith_mult($1, $3); $$.copyFrom(result); last_expression_location = $$.location; }
+	| Exp ARITH_OP_DIVISION Exp { $$.copyFrom(arith_division($1, $3)); }
+	| Exp ARITH_OP_PLUS_MINUS Exp { $$.copyFrom(arith_plus_minus($1, $2, $3)); last_expression_location = $$.location; }
+	| Matrix { 
+		$$.type = Matrix_type;
+		int x = $$.matrix_x = $1.matrix_x;
+		int y = $$.matrix_y = $1.matrix_y;
+		$$.location = next_free_location;
+		
+		// So far by parsing the Matrix rule, we have "collected" a list of locations where the matrix items are
+		// We need to "defragment" them all, so Exp ($$) will be "sequential"
+		list<int>::iterator it = $1.locations.begin();
+		for (int i = 0 ; i<x ; i++)
+		{
+			for (int j=0 ; j<y ; j++)
+			{
+				ostringstream os;
+				os << newTemp() << "=s[" << *it << "]"; 
+				emit(os.str());
+				it++;
+			}
+		}
+		last_expression_location = $$.location;
+	}
+	| NUM	{$$.type = Integer_type; $$.location = next_free_location ; 
+			$$.is_const = true; $$.int_val = $1.int_val; 
+			ostringstream os; os << newTemp() << "=" << $1.int_val; emit(os.str()); }
+	| ID	{$$.type = get_type($1.string_val); $$.location = get_location($1.string_val); 
+		if ($$.type == Matrix_type) { 
+			$$.matrix_x=get_x($1.string_val); 
+			$$.matrix_y=get_y($1.string_val);
+		} 
+		$$.is_const = false;
+		last_expression_location = $$.location;
+	}
+	| ID LB Exp CS Exp RB { 
+		if (($3.type != Integer_type) || ($5.type != Integer_type)) 
+		{
+			errSem();
+		}
+		$$.type = Integer_type;
+		$$.location = get_matrix_item_location($1.string_val, $3.int_val, $5.int_val); }
+	| LP Exp RP { $$.copyFrom($2); last_expression_location = $$.location; }
+;
+
+Matrix : LB Lines RB {
+	$$.type = Matrix_type; 
+	$$.matrix_x = $2.matrix_x; 
+	$$.matrix_y = $2.matrix_y; 
+	$$.locations = $2.locations; }
+
+Lines : Line {
+			$$.matrix_x = 1; 
+			$$.matrix_y = $1.matrix_y; 
+			$$.locations = $1.locations;
+		}
+	| Lines SC Line { 
+			if ($3.matrix_y != $1.matrix_y) { errSem(); } 
+			$$.matrix_y = $1.matrix_y; 
+			$$.matrix_x = $1.matrix_x + 1; 
+			$$.locations = $1.locations; 
+			$$.locations.insert($$.locations.end(), $3.locations.begin(), $3.locations.end());
+		}
+;
+
+Line : Exp { 
+	if ($1.type != Integer_type) { errSem(); } 
+	$$.matrix_y=1; 
+	$$.locations.push_back($1.location); }
+	| Line CS Exp { 
+		if ($3.type != Integer_type) { errSem(); } 
+		$$.matrix_y=$1.matrix_y+1;
+		$$.locations = $1.locations;
+		$$.locations.push_back($3.location); 
+	}
+;
+
+Lvalue : ID	{ $$.type = get_type($1.string_val); $$.location = get_location($1.string_val); 
+	if ($$.type == Matrix_type) 
+	{ 
+			$$.matrix_x=get_x($1.string_val); 
+			$$.matrix_y=get_y($1.string_val); 
+		}
+	}
+	| ID LB Exp CS Exp RB { 
+		if (($3.type != Integer_type) || ($5.type != Integer_type)) 
+		{
+			errSem();
+		}
+		if (!($3.is_const) || !($5.is_const)) 
+		{
+			errSem();
+		}
+		$$.type = Integer_type;
+		$$.location = get_matrix_item_location($1.string_val, $3.int_val, $5.int_val); }
+;
+
+Bool : Exp REL_OP Exp					{ relOpBool($$, $1, $2, $3); }
+	| NOT Bool							{ notBool($$, $1); }
+	| Bool LOGIC_OP_AND M Bool			{ andBool($$, $1, $3, $4); }
+	| Bool LOGIC_OP_OR M Bool			{ orBool($$, $1, $3, $4); }
+	| LP Bool RP						{ passBool($$, $2); }
+	| TRUE								{ trueBool($$); }
+	| FALSE								{ falseBool($$); }
+;
+
+OutputSpecifier : ID { $$.type = get_type($1.string_val); $$.location = get_location($1.string_val); 
+	if ($$.type == Matrix_type) 
+	{ 
+			$$.matrix_x=get_x($1.string_val); 
+			$$.matrix_y=get_y($1.string_val); 
+		}
+	}
+	| STRING { $$.type = String_type; $$.string_val = $1.string_val; }
+;
+
+M : {
+	$$.quad = next();
+};
+
+N : {
+	ostringstream os;
+	os << "goto ";
+	$$.quad = next();
+	emit(os.str());
+};
+
+%%
+
+void yyerror(const char*) 
+{
+	errSyn();
+}
+
+string newTemp()
+{
+	vars_per_scope_counter.back()++;
+	ostringstream os;
+	os << "s[" << next_free_location << "]";
+	next_free_location++;
+	return os.str();	
+}
+
+void trueBool(STYPE& src) {
+	src.type = Boolean_type;
+	ostringstream os;
+	os << "goto ";
+	src.trueList = makelist(next());
+	emit(os.str());
+}
+
+void falseBool(STYPE& src) {
+	src.type = Boolean_type;
+	ostringstream os;
+	os << "goto ";
+	src.falseList = makelist(next());
+	emit(os.str());
+}
+
+void passBool(STYPE& src, STYPE target) {
+	if (target.type != Boolean_type) 
+		errSem();
+	src.type = target.type;
+	src.trueList = target.trueList;
+	src.falseList = target.falseList;
+}
+
+void orBool(STYPE& src, STYPE arg1, STYPE marker, STYPE arg2) {
+	if ((arg1.type != Boolean_type) || (arg2.type != Boolean_type))
+		errSem();
+	src.type = Boolean_type;
+	bp(arg1.falseList, marker.quad);
+	src.trueList = merge(arg1.trueList, arg2.trueList);
+	src.falseList = arg2.falseList;
+}
+
+void andBool(STYPE& src, STYPE arg1, STYPE marker, STYPE arg2) {
+	if ((arg1.type != Boolean_type) || (arg2.type != Boolean_type))
+		errSem();
+	src.type = Boolean_type;
+	bp(arg1.trueList, marker.quad);
+	src.falseList = merge(arg1.falseList, arg2.falseList);
+	src.trueList = arg2.trueList;
+}
+
+void notBool(STYPE& src, STYPE arg) {
+	if (arg.type != Boolean_type)
+		errSem();
+	src.type = Boolean_type;
+	src.trueList = arg.falseList;
+	src.falseList = arg.trueList;
+}
+
+void relOpBool(STYPE& src, STYPE arg1, STYPE relOp, STYPE arg2) {
+	if ((arg1.type != Integer_type) || (arg2.type != Integer_type))
+		errSem();
+	src.type = Boolean_type;
+	if (relOp.string_val == "<=") {
+		ostringstream os;
+		os << "if " << "s[" << arg1.location << "] " << ">" << " s[" << arg2.location << "] " << "goto ";
+		src.falseList = makelist(next());
+		emit(os.str());
+		src.trueList = makelist(next());
+		emit("goto ");
+	}
+	else if (relOp.string_val == ">=") {
+		ostringstream os;
+		os << "if " << "s[" << arg1.location << "] " << "<" << " s[" << arg2.location << "] " << "goto ";
+		src.falseList = makelist(next());
+		emit(os.str());
+		src.trueList = makelist(next());
+		emit("goto ");
+	}
+	else {
+		ostringstream os;
+		os << "if " << "s[" << arg1.location << "] " << relOp.string_val << " s[" << arg2.location << "] " << "goto ";
+		src.trueList = makelist(next());
+		emit(os.str());
+		src.falseList = makelist(next());
+		emit("goto ");
+	}
+}
+
+void ifSemantic(STYPE& statement, STYPE booleanArg, STYPE marker, STYPE s1) {
+	if (booleanArg.type != Boolean_type)
+		errSem();
+	bp(booleanArg.trueList, marker.quad);
+	statement.nextList = merge(booleanArg.falseList, s1.nextList);
+}
+
+void ifElseSemantic(STYPE& statement, STYPE booleanArg, STYPE marker1, STYPE s1, STYPE n_marker, STYPE marker2, STYPE s2) {
+	if (booleanArg.type != Boolean_type)
+		errSem();
+	bp(booleanArg.trueList, marker1.quad);
+	bp(booleanArg.falseList, marker2.quad);
+	statement.nextList = merge(merge(s1.nextList, s2.nextList), makelist(n_marker.quad));
+}
+
+void whileSemantic(STYPE& statement, STYPE marker1, STYPE booleanArg, STYPE marker2, STYPE s1) {
+	if (booleanArg.type != Boolean_type)
+		errSem();
+	ostringstream os;
+	os << "goto " << marker1.quad;
+	bp(booleanArg.trueList, marker2.quad);
+	statement.nextList = merge(booleanArg.falseList, s1.nextList);
+	emit(os.str());
+}
+
+void assign(STYPE destination, STYPE source)
+{
+	if ((destination.type != source.type) || 
+		(destination.type != Integer_type && destination.type != Matrix_type) || 
+		(source.type != Integer_type && source.type != Matrix_type))
+	{
+		errSem();
+	}
+	
+	if (destination.type == Integer_type)
+	{
+		ostringstream os;
+		os << "s[" << destination.location << "]=s[" << source.location << "]";
+		emit(os.str());
+		return;	
+	}
+	
+	// else: matrix = matrix
+	if (destination.matrix_x != source.matrix_x || destination.matrix_y != source.matrix_y)
+	{
+		errSem();
+	}
+	
+	int x = destination.matrix_x;
+	int y = destination.matrix_y;
+	for (int i = 0 ; i < x ; i++ )
+	{
+		for (int j = 0 ; j < y ; j++ )
+		{
+			ostringstream os;
+			os << "s[" << destination.location + i*y +j << "]=s[" << source.location + i*y +j << "]";
+			emit(os.str());
+		}
+	}
+	return;
+}
+
+void new_scope()
+{
+	map<string, STYPE> newScopeSymbolTable;
+	vars.push_back(newScopeSymbolTable);		// The stack makes a copy of the pushed map
+	vars_per_scope_counter.push_back(0);
+}
+
+void close_scope()
+{
+	vars.pop_back();
+	int number_of_variables_in_closed_scope = vars_per_scope_counter.back();
+	vars_per_scope_counter.pop_back();
+	next_free_location -= number_of_variables_in_closed_scope;
+}
+
+void print(STYPE source)
+{
+	ostringstream os;
+	if (source.type == String_type)
+	{
+		os << "printLn \"" << source.string_val << "\"";
+		emit(os.str());
+		return;
+	}
+	if (source.type == Integer_type)
+	{
+		os << "printLn s[" << source.location << "]";
+		emit(os.str());
+		return;
+	}
+	
+	os << "print \"[\"";
+	emit(os.str());
+	if (source.type == Matrix_type)
+	{
+		int x = source.matrix_x;
+		int y = source.matrix_y;
+		for (int i = 0 ; i<x ; i++ )
+		{
+			ostringstream row;
+			for (int j = 0 ; j<y ; j++ )
+			{
+				ostringstream item;
+				item << "print s[" << source.location + i*y + j << "]";
+				emit(item.str());
+				if (j != y-1)
+				{
+					ostringstream comma;
+					comma << "print \",\"";
+					emit(comma.str());
+				}	
+			}
+			if (i != x-1) 
+			{
+				row << "print \";\"";
+				emit(row.str());
+			}
+		}
+	}
+	ostringstream os_last;
+	os_last << "printLn \"]\"";
+	emit(os_last.str());
+}
+
+STYPE* find_var(string varName)
+{
+	for (list<map<string, STYPE> >::reverse_iterator iterator = vars.rbegin(); iterator != vars.rend(); ++iterator) {
+    	if (iterator->find(varName) != iterator->end())
+		{
+			return &((*iterator)[varName]);
+		}
+	}
+	return NULL;
+}
+
+void read(STYPE id)
+{
+	STYPE* var = find_var(id.string_val);
+	if (var == NULL)
+	{
+		errSem();
+	}
+	if (var->type == Integer_type)
+	{
+		ostringstream os;
+		os << "input s[" << var->location << "]";
+		emit(os.str());
+		return;
+	}
+	if (var->type == Matrix_type)
+	{
+		int x = var->matrix_x;
+		int y = var->matrix_y;
+		for (int i = 0 ; i<x ; i++ )
+		{
+			for (int j = 0 ; j<y ; j++ )
+			{
+				ostringstream os;
+				os << "input s[" << var->location + i*y + j << "]";
+				emit(os.str());
+			}
+		}
+		return;
+	}
+	errSem();
+}
+
+bool variable_exists(string varName)
+{
+	STYPE* variable = find_var(varName);
+	if (variable == NULL)
+	{
+		return false;
+	}	
+	return true;
+}
+
+Type get_type(string varName)
+{
+	STYPE* variable = find_var(varName);
+	if (variable == NULL)
+	{
+		// attempting to get the type of a non-existing variable
+		errSem(); 
+	}
+	
+	return variable->type;
+}
+
+int get_location(string varName)
+{
+	STYPE* variable = find_var(varName);
+	if (variable == NULL)
+	{
+		// attempting to get the location of a non-existing variable
+		errSem(); 
+	}
+		
+	return variable->location;
+}
+
+int get_x(string varName)
+{
+	STYPE* variable = find_var(varName);
+	if (variable == NULL)
+	{
+		// attempting to get the location of a non-existing variable
+		errSem(); 
+	}
+	if (variable->type != Matrix_type)
+	{
+		errSem();
+	}
+	return variable->matrix_x;
+}
+
+int get_y(string varName)
+{
+	STYPE* variable = find_var(varName);
+	if (variable == NULL)
+	{
+		// attempting to get the location of a non-existing variable
+		errSem(); 
+	}
+	if (variable->type != Matrix_type)
+	{
+		errSem();
+	}
+	return variable->matrix_y;
+}
+
+int get_matrix_item_location(string varName, int x, int y)
+{
+	if ((x >= get_x(varName)) || (y >= get_y(varName)))
+	{
+		errSem();
+	}
+
+	int item_location = get_location(varName) + x*get_y(varName) + y;
+	return item_location;
+}
+
+void new_var_common(string varName, STYPE value) {
+	if (vars.back().find(varName) != vars.back().end())
+	{
+		// A variable of this name was already declared in this scope
+		errSem();
+	}
+	vars.back()[varName] = value;
+}
+
+void new_int(string varName) {
+	STYPE newValue;
+	newValue.type = Integer_type;
+	newValue.location = next_free_location;
+	
+	ostringstream os;
+	string new_place = newTemp();
+	os << new_place << "=0";				// emit: "s[i]=0"
+	emit(os.str());
+	
+	new_var_common(varName, newValue);
+}
+
+void new_int(string varName, STYPE value) {
+	if (value.type != Integer_type)
+	{
+		errSem();
+	}
+	STYPE newValue;
+	newValue.type = Integer_type;
+	newValue.location = next_free_location;
+	string new_place = newTemp();
+	
+	ostringstream os;
+	os << new_place << "=s[" << value.location << "]";	// emit: "s[i]=s[j]"
+	emit(os.str());
+	
+	new_var_common(varName, newValue);
+}
+
+void new_matrix(string varName, int x, int y) {
+	if ((x<=0) || (y<=0))
+	{
+		errSem();
+	}
+	STYPE newValue;
+	newValue.type = Matrix_type;
+	newValue.matrix_x = x;
+	newValue.matrix_y = y;
+
+	newValue.location= next_free_location;
+	
+	for (int i = 0 ; i < x ; i++ )
+	{
+		for (int j = 0 ; j < y ; j++ )
+		{
+			string new_place = newTemp();
+			
+			ostringstream os;
+			os << new_place << "=0";
+			emit(os.str());
+		}
+	}
+	new_var_common(varName, newValue);
+}
+
+void new_matrix(string varName, int x, int y, STYPE value) {
+	if (value.type != Matrix_type)
+	{
+		errSem();
+	}
+	if ((x != value.matrix_x) || (y != value.matrix_y) || (x<=0) || (y<=0))
+	{
+		errSem();
+	}
+	STYPE result;
+	result.type = Matrix_type;
+	result.matrix_x = x;
+	result.matrix_y = y;
+	result.location = next_free_location;
+	for (int i = 0 ; i < x ; i++ )
+	{
+		for (int j = 0 ; j < y ; j++ )
+		{
+			string new_place = newTemp();
+			
+			ostringstream os;
+			os << new_place << "=s[" << value.location + i*y + j << "]";
+			emit(os.str());
+		}
+	}
+	
+	new_var_common(varName, result);
+}
+
+STYPE scalar_mult_matrix(STYPE scalar, STYPE matrix)
+{
+	STYPE result;
+	result.type = Matrix_type;
+	result.location = next_free_location;
+	int x = result.matrix_x = matrix.matrix_x;
+	int y = result.matrix_y = matrix.matrix_y;
+	for (int i = 0 ; i < x ; i++ )
+	{
+		for (int j = 0 ; j < y ; j++ )
+		{
+			string new_place = newTemp();
+			
+			ostringstream os;
+			os << new_place << "=s[" << scalar.location << "] * s[" << matrix.location + i*y +j<< "]";
+			emit(os.str());
+		}
+	}
+	return result;
+}
+
+STYPE matrix_mult_matrix(STYPE matrix1, STYPE matrix2)
+{
+	if (matrix1.matrix_y != matrix2.matrix_x)
+	{
+		// cannot multiply matrices if their dimensions don't match
+		errSem();
+	}
+	
+	int result_location = next_free_location;
+	// Allocate space for the new matrix
+	for (int i = 0 ; i < matrix1.matrix_x ; i++ )
+	{
+		for (int j = 0 ; j < matrix2.matrix_y ; j++ )
+		{
+			string new_place = newTemp();
+			
+			ostringstream os;
+			os << new_place << "=0";
+			emit(os.str());
+		}
+	}
+	
+	string temp_place = newTemp();
+	
+	for (int i = 0 ; i < matrix1.matrix_x ; i++ )
+	{
+		for (int j = 0 ; j < matrix2.matrix_y ; j++ )
+		{
+			for (int k = 0 ; k < matrix1.matrix_y ; k++)
+			{	
+				ostringstream temp_mult;
+				temp_mult << temp_place << "=s[" << matrix1.location + i*matrix1.matrix_y + k <<"] * s[" << matrix2.location + k*matrix2.matrix_y + j << "]";
+				emit(temp_mult.str());
+				
+				ostringstream os;
+				os << "s[" << result_location + i*matrix2.matrix_y + j << "]=" << "s[" << result_location + i*matrix2.matrix_y + j << "] + " << temp_place ;
+				emit(os.str());	
+			}
+		}
+	}
+	STYPE result;
+	result.type = Matrix_type;
+	result.matrix_x = matrix1.matrix_x;
+	result.matrix_y = matrix2.matrix_y;
+	result.location = result_location;
+	return result;
+}
+
+STYPE arith_mult(STYPE x1, STYPE x2)
+{
+	STYPE result;
+	if (x1.type == Integer_type && x2.type == Integer_type)
+	{
+		result.type = Integer_type;
+		result.location = next_free_location;
+		ostringstream os;
+		os << newTemp() << "=" << "s[" << x1.location << "] * s[" << x2.location << "]";
+		emit(os.str());
+		if (x1.is_const && x2.is_const)
+		{
+			result.is_const = true;
+			result.int_val = x1.int_val * x2.int_val; 
+		}
+		return result;
+	}
+	if (x1.type == Integer_type && x2.type == Matrix_type )
+	{
+		return scalar_mult_matrix(x1, x2);
+	}
+	if (x1.type == Matrix_type && x2.type == Integer_type)
+	{
+		return scalar_mult_matrix(x2, x1);
+	}
+	if (x1.type == Matrix_type && x2.type == Matrix_type)
+	{
+		STYPE res = matrix_mult_matrix(x1, x2);
+		return res;
+	}
+	errSem();	
+	return result; // meaningless, errSem() exists, but written here to reduce warnings
+}
+
+STYPE arith_division(STYPE x1, STYPE x2)
+{
+	STYPE result;
+	if (x1.type == Integer_type && x2.type == Integer_type)
+	{
+		result.type = Integer_type;
+		result.location = next_free_location;
+		ostringstream os;
+		os << newTemp() << "=" << "s[" << x1.location << "] / s[" << x2.location << "]";
+		emit(os.str());
+		if (x1.is_const && x2.is_const)
+		{
+			result.is_const = true;
+			if (x2.int_val == 0)
+			{
+				// Division by zero
+				errSem();
+			}
+			result.int_val = x1.int_val / x2.int_val; 
+		}
+		return result;
+	}
+	
+	errSem();
+	return result; // meaningless, errSem() exists, but written here to reduce warnings
+}
+
+STYPE arith_plus_minus(STYPE x1, STYPE op, STYPE x2)
+{
+	STYPE result;
+	if (x1.type == Integer_type && x2.type == Integer_type)
+	{
+		result.type = Integer_type;
+		result.location = next_free_location;
+		ostringstream os;
+		os << newTemp() << "=" << "s[" << x1.location << "] "<< op.string_val <<" s[" << x2.location << "]";
+		emit(os.str());
+		if (x1.is_const && x2.is_const)
+		{
+			result.is_const = true;
+			if (op.string_val == "+")
+			{
+				result.int_val = x1.int_val + x2.int_val;
+			}
+			else
+			{
+				result.int_val = x1.int_val - x2.int_val; 
+			} 
+		}
+		return result;
+	}
+	
+	if (x1.type == Matrix_type && x2.type == Matrix_type)
+	{	
+		if ((x1.matrix_x != x2.matrix_x) || (x1.matrix_y != x2.matrix_y))
+		{
+			errSem();
+		}
+		result.type = Matrix_type;
+		result.location = next_free_location;
+		result.matrix_x = x1.matrix_x;
+		result.matrix_y = x1.matrix_y;
+		for (int i = 0 ; i < x1.matrix_x ; i++ )
+		{
+			for (int j = 0 ; j < x1.matrix_y ; j++ )
+			{
+				string new_place = newTemp();
+				
+				ostringstream os;
+				os << new_place << "=s[" << x1.location + i*x1.matrix_y + j << "] "<< op.string_val <<" s[" << x2.location + i*x1.matrix_y + j << "]";
+				emit(os.str());
+			}
+		}
+		return result;
+	}
+	errSem();
+	return result; // meaningless, errSem() exists, but written here to reduce warnings
+}
+
+int main() {
+    new_scope();	// push a new symbol table to the stack
+    yyparse();
+    printBuffer();
+    
+    return 0;
+}
+

@@ -1,0 +1,34 @@
+{
+	print "hello";
+	matrix m(2,3);
+	m[0,0]=0;
+	m[0,1]=1;
+	m[0,2]=2;
+	m[1,0]=3;
+	m[1,1]=4;
+	m[1,2]=5;
+	print "m1: ";
+	print m;
+	matrix n(3,1);
+	n[0,0]=1;
+	n[1,0]=2;
+	n[2,0]=3;
+	print "m2: ";
+	print n;
+	matrix o(2,1);
+	o=m*n;
+	print "m3: ";
+	print o;
+	matrix p(2,1)=3*o;
+	print "m4: ";
+	print p;
+	matrix q(2,1);
+	q[0,0]=1;
+	q[1,0]=1;
+	matrix r(2,1)=p+q;
+	print "m6: [1;1] + m4";
+	print r;
+	matrix s(2,1)=p-q;
+	print "m7: m4 - [1;1]";
+	print s;
+}

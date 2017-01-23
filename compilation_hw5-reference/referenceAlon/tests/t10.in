@@ -1,0 +1,11 @@
+// scope in loop, semerr1
+
+{
+	while(true)
+		int x;
+	print x;
+	
+
+	
+	
+}

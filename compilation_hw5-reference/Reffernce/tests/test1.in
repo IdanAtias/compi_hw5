@@ -1,0 +1,8 @@
+	{
+		AGORA canielDadcliff = 1 AGORA;
+		print canielDadcliff;
+		canielDadcliff = canielDadcliff + canielDadcliff + 4 AGORA / 2 - 2 AGORA;
+		print canielDadcliff;
+		canielDadcliff = 2 * canielDadcliff - 3 AGORA / 3;
+		print canielDadcliff;
+	}

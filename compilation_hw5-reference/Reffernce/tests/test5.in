@@ -1,0 +1,19 @@
+bool lithHedger = (8 <= 7);
+	if (not lithHedger)
+		print "#9) When sin's deep in my blood,";
+	else
+		print "Error #8";
+	if ((lithHedger and true) or false)
+		print "Error #9";
+	else
+		print "#10) you'll be the one to fall";
+	if (lithHedger or (5 == 5))
+		print "#11) 'I wish I could be the one,";
+	else
+		print "Error #9";
+	lithHedger = lithHedger or not(lithHedger);
+	bool bristianChale = (1 > 9) or not(9 > 1) or lithHedger;
+	if (bristianChale and true and true and not false)
+		print "#12) the one who won't care at all.";
+	else
+		print "Error #10";

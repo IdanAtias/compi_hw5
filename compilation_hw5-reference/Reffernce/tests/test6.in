@@ -1,0 +1,19 @@
+NIS jarlettSchohansson = 200 AGORA;
+	AGORA enBaffleck = 2 NIS;
+	if ((jarlettSchohansson == enBaffleck)
+			and (jarlettSchohansson + enBaffleck
+					== enBaffleck + jarlettSchohansson))
+		print "#13) But being the one on the stand,";
+	else
+		print "Error #11";
+	jarlettSchohansson = enBaffleck*9;
+	jarlettSchohansson = jarlettSchohansson/3;
+	if (jarlettSchohansson == 6 NIS)
+		print "#14) I know the way go go, no one's guiding me.";
+	else
+		print "Error #12";
+	int deonardoLicaprio = jarlettSchohansson / enBaffleck;
+	if (deonardoLicaprio == 3 and jarlettSchohansson / enBaffleck == 3)
+		print "#15) When time soaked with blood it turns its back,";
+	else
+		print "Error #13";

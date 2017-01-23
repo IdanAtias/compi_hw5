@@ -1,0 +1,22 @@
+// Scalar Ops
+{
+int x = 3;
+int y = 5;
+int z = 4;
+int res = x + y * z + 1;
+
+if (res != 24) {
+	print "FAIL";
+}
+
+res = x * y + z + z;
+
+if (res != 23) {
+	print "FAIL";
+}
+else {
+	print "OK";
+}
+
+
+}

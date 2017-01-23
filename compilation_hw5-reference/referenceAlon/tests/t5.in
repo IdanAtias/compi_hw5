@@ -1,0 +1,6 @@
+// Matrix Init, only const1
+{
+	int a = 1;
+	int b = 1;
+	matrix m(a,b);
+}

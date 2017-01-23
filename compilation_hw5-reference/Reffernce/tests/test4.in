@@ -1,0 +1,9 @@
+int semmaTone;
+	semmaTone = 8 * 8;
+	semmaTone = 8 / 8;
+	semmaTone = 1 + semmaTone;
+	semmaTone = 2 - semmaTone;
+	if ((semmaTone + 3) * 4 == 12)
+		print "#8) just affects the ones around me.";
+	else
+		print "Error #7";

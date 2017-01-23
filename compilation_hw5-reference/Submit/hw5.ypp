@@ -1,0 +1,1029 @@
+%{
+	#include "hw5.hpp"
+	#include "SymTable.h"
+	#include "bp.hpp"
+	
+	using namespace std;
+
+	extern int yylex();
+	extern int yylineno;
+		
+	list<YYSTYPE> variableList;
+	list<int> vectorList;
+	list<list <int> > matrixList;
+	int vector_size;
+	
+	
+	vector<SymTable> symTableStack;
+	stack<int> offsetStack;
+	
+	
+	void readInt(int loc);
+	void readMatrix(int loc, int rows, int cols);
+	void printInt(int loc, bool withLn);
+	void printString(string str, bool withLn);
+	void printMatrix(YYSTYPE out);
+	void assignMatrixes(YYSTYPE mat1, YYSTYPE mat2);
+	void assignInts(YYSTYPE val1, YYSTYPE val2);
+	void yyerror(string m);
+	string newTemp();
+	void printLexicalError();
+	void printSyntacticError();
+	void printSemanticError();
+	int initIntValueInS(int n);
+	int assignIntValueInS(int location);
+	int initMatrixValueInS(QSMatrix<int>& mat);
+	int addScalar(int loc1, int loc2);
+	int subScalar(int loc1, int loc2);
+	int mulScalar(int loc1, int loc2);
+	int divScalar(int loc1, int loc2);
+	int addMatrix(YYSTYPE mat1, YYSTYPE mat2);
+	int subMatrix(YYSTYPE mat1, YYSTYPE mat2);
+	int transpose(YYSTYPE mat);
+	int mulMatrixWithScalar(YYSTYPE mat, int scalar);
+	int MulMatrixWithMatrix(YYSTYPE mat1, YYSTYPE mat2);
+	int copyMatrix(YYSTYPE source);
+	SymTable& getTable(string id);
+	int nextFreeLocationOnArrayS = 0;	
+	
+%}
+
+%token LP LC RC LB RB CS SC ID ASSIGN NUM TYPE PRINT READ STRING TRUE FALSE IF WHILE FOREACH IN
+%left LOGIC_OR 
+%left LOGIC_AND
+%left REL_OP_LESS REL_OP_GRAETER REL_OP_L_EQUAL REL_OP_G_EQUAL REL_OP_NOT_EQUAL REL_OP_EQUAL
+%right NOT
+%left PLUS MINUS
+%left MUL DIV
+%left TRANSPOSE
+%nonassoc RP
+%nonassoc ELSE
+
+
+%%
+StartingProgram		: 	InitilizeProgramStacks Stmt M 	{ 
+															bp($2.nextList, $3.quad); 
+															
+														}
+
+InitilizeProgramStacks :					{
+												offsetStack.push(0);
+												SymTable newSymTable;
+												symTableStack.push_back(newSymTable);												
+											}
+
+Stmt 	:	TYPE Muse SC 				{
+											SymTable& table = symTableStack.back();	
+											for (std::list<YYSTYPE>::iterator it=variableList.begin(); it!=variableList.end(); ++it) {
+												YYSTYPE tmp = *it;
+												if (tmp.type != $2.type) {
+													printSemanticError();
+												}	
+												if (table.isVarDefined(tmp.id)) {
+													printSemanticError();
+												}
+												if (tmp.type == "int") {
+													table.insertVar(tmp.id,tmp.type,tmp.val,tmp.location);										
+											
+												} else {
+													table.insertVar(tmp.id,tmp.type,tmp.rows,tmp.cols, tmp.size,tmp.location);
+											
+												}														
+											}
+											variableList.clear();
+										}
+													
+			|  Lvalue ASSIGN Exp SC 		{	
+														if ($1.type == "matrix" && $3.type == "matrix") {
+															if ($1.rows != $3.rows || $1.cols != $3.cols) {
+																printSemanticError();
+															}
+															assignMatrixes($1, $3);
+														} else if ($1.type == "int" && $3.type == "int") {
+															assignInts($1, $3);
+														} else {
+															printSemanticError();
+														}
+
+													}
+			|  PRINT OutputSpecifier SC				{
+														if ($2.type == "int") {
+															printInt($2.location, true);
+														} else if ($2.type == "matrix") {
+															printMatrix($2);
+														} else {
+															printString($2.id, true);
+														}
+																											
+													}
+			| READ ID SC							{
+														SymTable& table = getTable($2.id);
+														if (table.getVarType($2.id) == "int") {
+															readInt(table.getVarOffset($2.id));
+														} else {
+															readMatrix(table.getVarOffset($2.id),table.get_rows($2.id),table.get_cols($2.id));
+														}
+													}
+			| IF LP Bool RP StartScope M Stmt EndScope					{
+																			bp($3.trueList, $6.quad);
+																			$$.nextList = merge($3.falseList, $7.nextList);
+																		}
+			| IF LP Bool RP StartScope M Stmt EndScope ELSE StartScope N M Stmt EndScope {
+																		bp($3.trueList, $6.quad);
+																		bp($3.falseList, $12.quad);
+																		$$.nextList = merge(merge($7.nextList, $13.nextList),
+																			makelist($11.quad));
+																	}
+			| WHILE LP M Bool RP StartScope M Stmt EndScope		{	
+																		bp($4.trueList, $7.quad);
+																		bp($8.nextList, $3.quad);
+																		$$.nextList = $4.falseList;
+																		ostringstream os;
+																		os << "goto " << $3.quad;
+																		emit(os.str());
+																	
+																	}
+
+			| FOREACH LP PreForEach N M Stmt N M	{ 
+														bp($6.nextList, $7.quad);
+														list<int> list = makelist($4.quad);
+														bp(list, $8.quad);
+														bp($3.nextList, $5.quad);
+														list = makelist($7.quad);
+														bp(list, $3.quad);	
+								
+														symTableStack.pop_back();
+														offsetStack.pop();
+													}
+				
+			  			
+			| LC StartScope Stmts RC EndScope
+	
+	
+PreForEach 			:		preInitID IN Exp RP     {		if ($3.type != "matrix") {
+																printSemanticError();
+															}
+															int counterLoc = initIntValueInS(-1);
+															int counterIncLabel = next();
+															ostringstream os;
+															os << "s[" << counterLoc << "]=s[" << counterLoc << "]+1";
+															emit(os.str());
+															$$.quad = counterIncLabel;
+															int matSize = $3.size;
+															os.str("");
+															os.clear();
+															for (int i = 0 ; i < matSize ; ++i) {
+																int toCompareLoc = initIntValueInS(i);
+																int thisIfQuad = next();
+																os << "if s[" << counterLoc << "] > s[" << toCompareLoc << "] goto ";
+																emit(os.str());
+																os.str("");
+																os.clear();
+																os << "s[" << $1.location << "]=s[" << $3.location + i << "]";
+																emit(os.str());
+																os.str("");
+																os.clear();
+																int gotoStmt = next();
+																os << "goto ";
+																emit(os.str());
+																$$.nextList.push_back(gotoStmt);
+																int togoNextIfLabel = next();
+																list<int> list = makelist(thisIfQuad);
+																bp(list, togoNextIfLabel);
+																os.str("");
+																os.clear();
+															}
+															
+	
+													}
+			
+preInitID 			:       StartScope ID 			{
+															SymTable& table = symTableStack.back();	
+															if (table.isVarDefined($2.id)) {
+																printSemanticError();
+															}
+															$$.id = $2.id;
+															$$.type = "int";
+															$$.val = 0;
+															$$.location = initIntValueInS(0);
+															table.insertVar($$.id,$$.type,$$.val,$$.location);						
+													}  
+												
+			
+StartScope        : 								{	
+														
+														offsetStack.push(offsetStack.top());
+														SymTable newSymTable;
+														symTableStack.push_back(newSymTable);
+													
+													}			
+
+EndScope		:									{	
+														symTableStack.pop_back();	
+														offsetStack.pop();
+													}
+
+
+
+Stmts 	: 	Stmt								{
+													bp($1.nextList, next()); 
+													$$.nextList = $1.nextList; 
+												}
+		|	Stmt M Stmts						{
+													bp($1.nextList, $2.quad); 
+													$$.nextList = merge($1.nextList, $3.nextList);
+												}
+													
+													
+													
+Muse	:	Init
+			| Init CS Muse
+						
+Init 	: 	ID 									{
+													$1.type = "int";
+													$1.location = initIntValueInS(0);
+													variableList.push_back($1);
+												}
+			| ID ASSIGN Exp						{
+													if ($3.type == "matrix") {
+														printSemanticError();
+													}
+													$1.type = $3.type;
+													$1.location = assignIntValueInS($3.location);
+													variableList.push_back($1);
+												}
+			| ID LP Exp CS Exp RP				{
+													if ($3.type == "matrix" || $5.type == "matrix") {
+														printSemanticError();
+													}
+													if (!($3.constVar) || !($5.constVar)) {
+														printSemanticError();
+													}
+													if (($3.val <= 0) || ($5.val <= 0)) {
+														printSemanticError();
+													}
+													$1.type = "matrix";
+													QSMatrix<int> mat($3.val,$5.val,0);
+													$1.location = initMatrixValueInS(mat);
+													$1.rows = mat.get_rows();
+													$1.cols = mat.get_cols();
+													$1.size = mat.size();
+													variableList.push_back($1);
+												}
+			| ID LP Exp CS Exp RP ASSIGN Exp 	{
+													if ($3.type == "matrix" || $5.type == "matrix") {
+														printSemanticError();
+													}
+													if (!($3.constVar) || !($5.constVar)) {
+														printSemanticError();
+													}
+													if (($3.val <= 0) || ($5.val <= 0)) {
+														printSemanticError();
+													}
+													if ($8.type != "matrix") {
+														printSemanticError();
+													}
+													if ($3.val != $8.rows || $5.val != $8.cols) {
+														printSemanticError();
+													}
+													$1.type = $8.type;
+													$1.location = copyMatrix($8);
+													$1.rows = $8.rows;
+													$1.cols = $8.cols;
+													$1.size = $8.size;
+													variableList.push_back($1);
+												}
+
+			
+											
+Exp 	: 	Exp MUL Exp						{	
+												
+												if ($1.type == "int" && $3.type == "int") {
+													if ($1.constVar && $3.constVar) {
+														$$.val = $1.val * $3.val;
+													}
+													$$.location = mulScalar($1.location, $3.location);
+													$$.type = "int";
+												} else if ($1.type == "matrix" && $3.type == "matrix") {
+													if ($1.cols != $3.rows) {
+														printSemanticError();
+													}
+													$$.type = "matrix";
+													$$.rows = $1.rows;
+													$$.cols = $3.cols;
+													$$.size = $$.rows * $$.cols;
+													$$.location = MulMatrixWithMatrix($1, $3); 
+												} else if ($1.type == "matrix" && $3.type == "int") {
+													$$.type = "matrix";
+													$$.location = mulMatrixWithScalar($1, $3.location);
+													$$.rows = $1.rows;
+													$$.cols = $1.cols;
+													$$.size = $1.size;
+												} else {
+													$$.type = "matrix";
+													$$.location = mulMatrixWithScalar($3, $1.location);
+													$$.rows = $3.rows;
+													$$.cols = $3.cols;
+													$$.size = $3.size;
+												}
+												$$.constVar = $1.constVar && $3.constVar;
+											}	
+			| Exp DIV Exp					{
+												if ($1.type == "matrix" || $3.type == "matrix") {
+													printSemanticError();
+												}
+												if ($3.val == 0) {
+													printSemanticError();
+												}
+												$$.type = "int";
+												if ($1.constVar && $3.constVar) {
+													$$.val = $1.val / $3.val;
+												}
+												$$.location = divScalar($1.location, $3.location);
+												$$.constVar = $1.constVar && $3.constVar;
+											}
+			| Exp PLUS Exp					{
+												if ($1.type == "int" && $3.type == "int") {
+													$$.type = "int";
+													if ($1.constVar && $3.constVar) {
+														$$.val = $1.val + $3.val;	
+													}
+													$$.location = addScalar($1.location, $3.location);
+												} else if ($1.type == "matrix" && $3.type == "matrix") {
+													if ($1.rows != $3.rows || $1.cols != $3.cols) {
+														printSemanticError();
+													}
+													$$.type = "matrix";
+													$$.location = addMatrix($1, $3);
+													$$.rows = $1.rows;
+													$$.cols = $1.cols;
+													$$.size = $1.size; 
+												} else {
+													printSemanticError();
+												}
+												$$.constVar = $1.constVar && $3.constVar;
+											}	
+			| Exp MINUS Exp					{
+												if ($1.type == "int" && $3.type == "int") {
+													$$.type = "int";
+													if ($1.constVar && $3.constVar) {
+														$$.val = $1.val - $3.val;	
+													}
+													$$.location = subScalar($1.location, $3.location);
+												} else if ($1.type == "matrix" && $3.type == "matrix") {
+													if ($1.rows != $3.rows || $1.cols != $3.cols) {
+														printSemanticError();
+													}
+													$$.type = "matrix";
+													$$.location = subMatrix($1, $3);
+													$$.rows = $1.rows;
+													$$.cols = $1.cols;
+													$$.size = $1.size; 
+												} else {
+													printSemanticError();
+												}
+												$$.constVar = $1.constVar && $3.constVar;
+											}
+			| MINUS Exp						{
+												$$.type = $2.type;
+												$$.constVar = $2.constVar;
+												int toMulWithMinusLoc = initIntValueInS(-1);
+												if ($2.type == "int") {
+													if ($2.constVar) {
+														$$.val = (-1) * $2.val;
+													}
+													$$.location = mulScalar($2.location, toMulWithMinusLoc);
+												} else {
+													$$.location = mulMatrixWithScalar($2, toMulWithMinusLoc);
+													$$.rows = $2.rows;
+													$$.cols = $2.cols;
+													$$.size = $2.size;
+												}
+											}	
+			| Mat 							{
+												$$.type = $1.type;
+												$$.location = $1.location;
+												$$.rows = $1.rows;
+												$$.cols = $1.cols;
+												$$.size = $1.size;
+												$$.constVar = $1.constVar;
+											}
+			| NUM							{
+												$$.type = $1.type;
+												$$.constVar = $1.constVar;
+												$$.val = $1.val;
+												$$.location = initIntValueInS($1.val);
+											}
+			| ID                            {	
+												SymTable& table = getTable($1.id);
+												$$.id = $1.id;
+												$$.type = table.getVarType($1.id);
+												$$.location = table.getVarOffset($$.id);
+												if ($$.type == "matrix") {
+													$$.rows = table.get_rows($$.id);
+													$$.cols = table.get_cols($$.id);
+													$$.size = table.get_matrix_size($$.id);
+												}
+												$$.constVar = $1.constVar;
+											
+											}
+			| LP Exp RP						{
+												$$.type = $2.type;
+												$$.location = $2.location;
+												if ($2.type == "int") {
+													$$.val = $2.val;
+												} else {
+													$$.rows = $2.rows;
+													$$.cols = $2.cols;
+													$$.size = $2.size;
+												}
+												$$.constVar = $2.constVar;
+											}
+			| ID LB Exp CS Exp RB			{
+												SymTable& table = getTable($1.id);
+												if ($3.type != "int" || $5.type != "int") {
+													printSemanticError();
+												}
+												if (!($3.constVar) || !($5.constVar)) {
+													printSemanticError();
+												}
+												if ($3.val >= table.get_rows($1.id) ||
+													$3.val < 0) {
+													printSemanticError();
+												}
+												if ($5.val >= table.get_cols($1.id) ||
+													$5.val < 0) {
+													printSemanticError();
+												}
+												if (table.getVarType($1.id) == "int") {
+													printSemanticError();
+												}
+												$$.type = "int";
+												$$.location = assignIntValueInS(table.getVarOffset($1.id) + $3.val*table.get_cols($1.id) + $5.val);
+												$$.constVar = false;
+											}
+			
+
+First 		: 	Nirvana				{
+										vector_size = vectorList.size();
+										list<int> tmp = vectorList;
+										$$.constVar = $1.constVar;
+										matrixList.push_back(tmp);
+										vectorList.clear();
+									}								
+					
+									
+Mat 	: 	LB Nirvana RB			{	
+										$$.location = offsetStack.top();
+										$$.rows = 1;
+										$$.cols = vectorList.size();
+										$$.size = $$.cols;
+										for (std::list<int>::reverse_iterator rit=vectorList.rbegin(); rit!=vectorList.rend(); ++rit) {
+											int tmp_loc = *rit;
+											assignIntValueInS(tmp_loc);
+										}
+										$$.type = "matrix";
+										$$.constVar = $2.constVar;													
+										vectorList.clear();
+									}
+			| LB First Pixies RB	{
+										$$.location = offsetStack.top();
+										$$.rows = matrixList.size();
+										$$.cols = vector_size;
+										$$.size = $$.rows * $$.cols;
+										for (std::list<list <int> >::iterator it=matrixList.begin(); it!=matrixList.end(); ++it) {
+											list<int> tmp_vec = *it;
+											for (std::list<int>::reverse_iterator rit_a=tmp_vec.rbegin(); rit_a!=tmp_vec.rend(); ++rit_a) {
+												int tmp_loc = *rit_a;
+												assignIntValueInS(tmp_loc);
+											}
+										}
+										$$.type = "matrix";
+										$$.constVar = $2.constVar && $3.constVar;
+										matrixList.clear();		
+									}
+
+			| TRANSPOSE LP Mat RP %prec TRANSPOSE		{
+															$$.type = $3.type;
+															$$.location = transpose($3);
+															$$.rows = $3.cols;
+															$$.cols = $3.rows;
+															$$.size = $3.size;
+															$$.constVar = false;
+														}
+			| TRANSPOSE LP ID RP %prec TRANSPOSE 		{
+															SymTable& table = getTable($3.id);
+															if (table.getVarType($3.id) == "int") {
+																printSemanticError();
+															}
+															YYSTYPE fromTheTable;
+															fromTheTable.type = table.getVarType($3.id);
+															fromTheTable.rows = table.get_rows($3.id);
+															fromTheTable.cols = table.get_cols($3.id);
+															fromTheTable.size = table.get_matrix_size($3.id);
+															fromTheTable.location = table.getVarOffset($3.id);
+
+															$$.location = transpose(fromTheTable);
+															$$.type = fromTheTable.type;
+															$$.rows = fromTheTable.cols;
+															$$.cols = fromTheTable.rows;
+															$$.size = fromTheTable.size;
+															$$.constVar = false;
+															
+														}
+
+BeforeP:	Nirvana 						{
+												if (vectorList.size() != vector_size) {
+													printSemanticError();
+												}
+												list<int> tmp = vectorList;
+												$$.constVar = $1.constVar;
+												matrixList.push_back(tmp);
+												vectorList.clear();
+											}
+
+Pixies:		SC Nirvana						{
+												if (vectorList.size() != vector_size) {
+													printSemanticError();
+												}
+												list<int> tmp = vectorList;
+												$$.constVar = $2.constVar;
+												matrixList.push_back(tmp);
+												vectorList.clear();
+											}
+			| SC BeforeP Pixies				{
+												$$.constVar = $2.constVar && $3.constVar;
+											}
+					
+Nirvana : 	Exp 							{
+												if ($1.type == "matrix") {
+													printSemanticError();
+												}
+												$$.constVar = $1.constVar;
+												vectorList.push_back(assignIntValueInS($1.location));
+											}
+			| Exp CS Nirvana				{
+												if ($1.type == "matrix") {
+													printSemanticError();
+												}
+												$$.constVar = $1.constVar && $3.constVar;
+												vectorList.push_back(assignIntValueInS($1.location));
+											}
+			
+Lvalue  :		ID 							{
+												SymTable& table = getTable($1.id);
+												$$.id = $1.id;
+												$$.type = table.getVarType($1.id);
+												$$.location = table.getVarOffset($$.id);
+												if ($$.type == "matrix") {
+													$$.rows = table.get_rows($$.id);
+													$$.cols = table.get_cols($$.id);
+													$$.size = table.get_matrix_size($$.id);
+												}
+												$$.constVar = $1.constVar;
+											}
+				| ID LB Exp CS Exp RB 		{
+												SymTable& table = getTable($1.id);
+												if ($3.type != "int" || $5.type != "int") {
+													printSemanticError();
+												}
+												if (!($3.constVar) || !($5.constVar)) {
+													printSemanticError();
+												}
+												if ($3.val >= table.get_rows($1.id) ||
+													$3.val < 0) {
+													printSemanticError();
+												}
+												if ($5.val >= table.get_cols($1.id) ||
+													$5.val < 0) {
+													printSemanticError();
+												}
+												if (table.getVarType($1.id) == "int") {
+													printSemanticError();
+												}
+												$$.type = "int";
+												$$.location = table.getVarOffset($1.id) + $3.val*table.get_cols($1.id) + $5.val;
+												$$.constVar = false;
+
+											}
+
+M 		:		{
+					$$.quad = next();
+				}
+
+N 		:		{
+					$$.quad = next();
+					emit("goto ");
+				} 
+			
+				
+Bool 	:		Exp REL_OP_LESS Exp			{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.trueList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] < s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.falseList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp REL_OP_GRAETER Exp	{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.trueList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] > s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.falseList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp REL_OP_L_EQUAL Exp	{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.falseList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] > s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.trueList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp REL_OP_G_EQUAL Exp	{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.falseList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] < s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.trueList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp REL_OP_NOT_EQUAL Exp	{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.trueList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] != s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.falseList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp REL_OP_EQUAL Exp		{
+												if ($1.type != "int" || $3.type != "int") {
+													printSemanticError();
+												}
+												$$.trueList = makelist(next());
+												ostringstream os;
+												os << "if s[" << $1.location << "] == s[" << $3.location << 
+												"] goto ";
+												emit(os.str());
+												$$.falseList = makelist(next());
+												emit("goto "); 
+											}
+				| Exp IN Exp				{
+												if ($1.type != "int" || $3.type != "matrix") {
+													printSemanticError();
+												}
+												$$.trueList = makelist(next());
+												for (int i = 0; i < $3.size; ++i) {
+													if (i != 0) {
+														$$.trueList = merge($$.trueList, makelist(next()));
+													}
+													ostringstream os;
+													os << "if s[" << $1.location << "] == s[" << $3.location + i << 
+													"] goto ";
+													emit(os.str());
+												}
+												$$.falseList = makelist(next());
+												emit("goto ");
+											} 
+				| NOT Bool 					{
+												$$.type = $2.type;
+												$$.falseList = $2.trueList;
+												$$.trueList = $2.falseList;
+											}
+				| Bool LOGIC_OR M Bool 		{
+												$$.type = $1.type;
+												bp($1.falseList, $3.quad);
+												$$.trueList = merge($1.trueList, $4.trueList);
+												$$.falseList = $4.falseList;
+											}
+				| Bool LOGIC_AND M Bool	 	{
+												$$.type = $1.type;
+												bp($1.trueList, $3.quad);
+												$$.falseList = merge($1.falseList, $4.falseList);
+												$$.trueList = $4.trueList;
+											}	
+				| LP Bool RP 				{
+												$$.type = $2.type;
+												$$.trueList = $2.trueList;
+												$$.falseList = $2.falseList;
+											}
+				| TRUE						{
+												$$.type = "bool";
+												ostringstream os;
+												os << "goto ";
+												$$.trueList = makelist(next());
+												emit(os.str());
+											}
+				| FALSE 					{
+												$$.type = "bool";
+												ostringstream os;
+												os << "goto ";
+												$$.falseList = makelist(next());
+												emit(os.str());
+											}
+
+OutputSpecifier	:	ID						{
+												SymTable& table  = getTable($1.id);
+												$$.id = $1.id;
+												$$.location = table.getVarOffset($1.id);
+												$$.type = table.getVarType($1.id);
+												if ($$.type == "matrix") {
+													$$.rows = table.get_rows($1.id);
+													$$.cols = table.get_cols($1.id);
+													$$.size = table.get_matrix_size($1.id);
+												}
+												$$.constVar = false;
+																								
+											}
+					|STRING					{
+												
+												$$.id = $1.id.substr(1, $1.id.size()-2);
+												$$.type = "string";
+												$$.constVar = false;						
+											}
+					
+					
+%%
+
+void assignMatrixes(YYSTYPE mat1, YYSTYPE mat2) {
+	for (int i = 0; i < mat1.size; ++i) {
+		ostringstream os;
+		os << "s[" << mat1.location + i << "]=s[" << mat2.location + i << "]";	
+		emit(os.str());	
+	}
+}
+
+void assignInts(YYSTYPE val1, YYSTYPE val2) {
+	ostringstream os;
+	os << "s[" << val1.location << "]=s[" << val2.location << "]";	
+	emit(os.str());	
+}
+
+int initIntValueInS(int n) {
+	int location = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=" << n;
+	emit(os.str());
+	return location;
+}
+
+
+
+int initMatrixValueInS(QSMatrix<int>& mat) {
+	int location = offsetStack.top();
+	for (int i = 0; i < mat.get_rows(); ++i) {
+		for (int j = 0; j < mat.get_cols(); ++j) {
+			initIntValueInS(mat(i,j));
+		}
+	}
+	return location;
+}
+
+int addScalar(int loc1, int loc2) {
+	int new_loc = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=s[" << loc1 << "]+s[" << loc2 << "]";
+	emit(os.str());
+	return new_loc;
+}
+
+int subScalar(int loc1, int loc2) {
+	int new_loc = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=s[" << loc1 << "]-s[" << loc2 << "]";
+	emit(os.str());
+	return new_loc;
+}
+
+int mulScalar(int loc1, int loc2) {
+	int new_loc = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=s[" << loc1 << "]*s[" << loc2 << "]";
+	emit(os.str());
+	return new_loc;
+}
+
+int divScalar(int loc1, int loc2) {
+	int new_loc = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=s[" << loc1 << "]/s[" << loc2 << "]";
+	emit(os.str());
+	return new_loc;
+}
+
+int addMatrix(YYSTYPE mat1, YYSTYPE mat2) {
+	int new_loc = offsetStack.top();
+	for (int i = 0; i < mat1.rows; i++) {
+		for (int j = 0; j < mat1.cols; j++) {
+			ostringstream os;
+			os << newTemp() << "=s[" << mat1.location + i*mat1.cols + j << "]+s[" << mat2.location + i*mat2.cols
+			 + j << "]";
+			emit(os.str());
+		}
+	}
+	return new_loc;
+}
+
+int subMatrix(YYSTYPE mat1, YYSTYPE mat2) {
+	int new_loc = offsetStack.top();
+	for (int i = 0; i < mat1.rows; i++) {
+		for (int j = 0; j < mat1.cols; j++) {
+			ostringstream os;
+			os << newTemp() << "=s[" << mat1.location + i*mat1.cols + j << "]-s[" << mat2.location + i*mat2.cols + j << "]";
+			emit(os.str());
+		}
+	}
+	return new_loc;
+}
+
+int assignIntValueInS(int location) {
+	int new_loc = offsetStack.top();
+	ostringstream os;
+	os << newTemp() << "=s[" << location << "]";
+	emit(os.str());
+	return new_loc;
+}
+
+int transpose(YYSTYPE mat) {
+	int new_loc = offsetStack.top();
+	for (int i = 0; i < mat.cols; i++) {
+		for (int j = 0; j < mat.rows; j++) {
+			ostringstream os;
+			assignIntValueInS(mat.location + j*mat.cols +i);
+		}
+	}
+	return new_loc;
+}
+
+int mulMatrixWithScalar(YYSTYPE mat, int scalar) {
+	int new_loc = offsetStack.top();
+	for (int i = 0; i < mat.rows; i++) {
+		for (int j = 0; j < mat.cols; j++) {
+			ostringstream os;
+			os << newTemp() << "=s[" << mat.location + i*mat.cols + j << "]*s[" << scalar << "]";
+			emit(os.str());
+		}
+	}
+	return new_loc;
+}
+
+int MulMatrixWithMatrix(YYSTYPE mat1, YYSTYPE mat2) {
+	int new_loc = offsetStack.top();
+	int rows = mat1.rows;
+	int cols = mat2.cols;
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			initIntValueInS(0);
+		}
+	}
+	int temp_place = initIntValueInS(0);
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			for (int k = 0; k < mat1.cols; k++)
+			{	
+				ostringstream temp_mult;
+				temp_mult << "s[" << temp_place << "]=s[" << mat1.location + i*mat1.cols + k <<"]*s[" << mat2.location + k*mat2.cols + j << "]";
+				emit(temp_mult.str());
+				
+				ostringstream os;
+				os << "s[" << new_loc + i*mat2.cols + j << "]=" << "s[" << new_loc + i*mat2.cols + j << "]+s[" << temp_place << "]" ;
+				emit(os.str());	
+			}
+		}
+	}
+	return new_loc;
+}
+
+int copyMatrix(YYSTYPE source) {
+	int location = offsetStack.top();
+	for (int i=0; i < source.rows; ++i) {
+		for (int j=0; j < source.cols; ++j) {
+			assignIntValueInS(source.location + i*source.cols + j); 
+		}
+	}
+	return location;
+}
+
+SymTable& getTable(string id) {
+	for (vector<SymTable>::reverse_iterator iter = symTableStack.rbegin(); iter != symTableStack.rend(); iter++) {
+		if (iter->isVarDefined(id)) {
+			return *iter;
+		}
+	}
+	printSemanticError();
+	return *(symTableStack.begin());
+}
+
+void printInt(int loc, bool withLn) {
+	ostringstream os;
+	if (withLn) {
+		os << "printLn s[" << loc << "]";
+	} else {
+		os << "print s[" << loc << "]";
+	}	
+	emit(os.str());	
+}
+
+void printString(string str, bool withLn) {
+	ostringstream os;
+	if (withLn) {
+		os << "printLn \"" << str << "\"";
+	} else {
+		os << "print \"" << str << "\"";
+	}
+	emit(os.str());	
+}
+
+void printMatrix(YYSTYPE out) {
+	ostringstream os;
+	printString("[", false);	
+	for (int i = 0; i < out.rows ; ++i) {
+		for (int j = 0 ; j < out.cols ; ++j) { 
+			printInt(out.location + i*out.cols + j, false);
+			if (j < (out.cols - 1)) {
+				printString(",", false);
+			}
+		}
+		if (i < out.rows - 1) {
+			printString(";", false);
+		}
+	}
+	printString("]", true);
+}
+
+void readInt(int loc) {
+	ostringstream os;
+	os << "input s[" << loc << "]";
+	emit(os.str());
+}
+
+void readMatrix(int loc, int rows, int cols) {
+	for (int i = 0 ; i< rows ; i++ ) {
+		for (int j = 0 ; j< cols ; j++ ) {
+			ostringstream os;
+			os << "input s[" << loc + i*cols + j << "]";
+			emit(os.str());
+		}
+	}
+}
+
+string newTemp()
+{
+	ostringstream os;
+	os << "s[" << offsetStack.top() << "]";
+	offsetStack.top()++;
+	return os.str();	
+}
+
+void yyerror(string m) {
+	printSyntacticError();
+}
+
+void printLexicalError() {
+	cout << "LEXICAL ERROR" << endl;
+	exit(1);
+}
+
+void printSyntacticError() {
+	cout << "SYNTACTIC ERROR" << endl;
+	exit(1);
+}
+
+void printSemanticError() {
+	cout << "SEMANTIC ERROR" << endl;
+	exit(1);
+}
+
+
+int main() {
+	yyparse();
+	printBuffer();
+	return 0;
+}
+
+

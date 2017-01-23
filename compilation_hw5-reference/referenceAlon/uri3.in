@@ -1,0 +1,17 @@
+{
+	// supposed to print 1 2 3 2 1
+	int x=1;
+	int y;
+	y=2;
+	print x;
+	{
+		int x=2;
+		print x;
+		int z=3;
+		{
+			print z;
+		}
+	}
+	print y;
+	print x;
+}

@@ -1,0 +1,788 @@
+%{
+	#include "hw5.hpp"
+	#include <stack>
+	#include <vector>
+	#include "SymTable.hpp"
+	#include <sstream>
+	#include "output.hpp"
+	#include "bp.hpp"
+	#include <iostream>
+	
+	using namespace std;
+
+	extern int yylex();
+	extern int yylineno;
+	
+	vector<SymTable> tablesStack;
+	stack<int> offsetStack;
+	
+	unsigned int whileCounter = 0;
+	
+	bool ifFlag = false;
+	bool expFlag = false;
+
+	int yyerror(string message);
+	
+	void printList(list<int>& l){
+		for (list<int>::iterator iter = l.begin() ; iter != l.end(); ++iter) {
+			cout << (*iter) << " ";
+		}
+		cout << endl;
+	}
+	
+	string createTempVar(string type) {
+		string newTmp = newTemp();
+		tablesStack.back().insertVar(newTmp,offsetStack.top(),type);
+		int newOffset = offsetStack.top() + 1;
+		offsetStack.pop();
+		offsetStack.push(newOffset);
+		return newTmp;
+	}
+	
+	TableLine getTableLineById(string id) {
+		for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+			const TableLine* pLine = iter->getTableLineFromId(id);
+			if (pLine) {
+				return *pLine;
+			}
+		}
+	}
+	
+	int getVarOffsetById(string id) {
+		for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+			int offset = iter->getVarOffset(id);
+			if (offset != -1) {
+				return offset;
+			}
+		}
+	}
+	
+	//we assume both are coins and different types
+	string convertCoins(string id1, string id2) {
+		TableLine tl1 = getTableLineById(id1);
+		TableLine tl2 = getTableLineById(id2);
+
+		string tmpVar = createTempVar(tl1.type);
+		ostringstream tmpStr;
+		if (tl1.type == string("AGORA")) {
+			tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=s[" << tl2.offset << "]*100";
+			emit(tmpStr.str());
+		} else {
+			tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=s[" << tl2.offset << "]/100";
+			emit(tmpStr.str());
+		}
+		return tmpVar;
+	}
+	
+	list<int> emptyList() {
+		return list<int>();
+	}
+
+%}
+
+%token LP LC RC SC INT NIS AGORA PRINT INPUT ID STRING TRUE FALSE IF WHILE BREAK BOOL NUM
+%right ASSIGN
+%left OR
+%left AND
+%left REL_OP
+%left PLUS MINUS
+%left MULT DIV
+%right NOT
+
+%nonassoc RP
+%nonassoc ELSE
+
+
+%%
+	
+Prog	:	InitMarker Statements
+			{
+				tablesStack.pop_back();
+				offsetStack.pop();
+				printBuffer();
+			}
+	;
+
+InitMarker : 	{
+					tablesStack.push_back(SymTable());
+					offsetStack.push(0);
+				}
+	;
+	
+Statements	:	Statements Statement
+				{
+					bp($2.nextList,next());
+					$$.breakList = merge($1.breakList,$2.breakList);
+					$$.falseList = emptyList();//merge($1.falseList,$2.falseList);
+					$$.trueList = emptyList();//merge($1.trueList,$2.trueList);
+					$$.nextList = emptyList();//$1.nextList;
+					
+				}
+			| 	Statement
+				{
+					bp($1.nextList,next());
+					$$.nextList = emptyList();
+					$$.breakList = $1.breakList;
+					$$.falseList = $1.falseList;
+					$$.trueList = $1.trueList;
+				}
+	;
+
+EndScopeMarker	:	{
+						tablesStack.pop_back();
+						offsetStack.pop();
+					}
+	;
+	
+StartScopeMarker	:	{
+							tablesStack.push_back(SymTable());
+							offsetStack.push(offsetStack.top());
+							ifFlag = false;
+						}					
+	;
+	
+Statement	:	LC StartScopeMarker Statements EndScopeMarker RC
+				{
+					$$ = $3;
+				}
+			| 	Type ID SC
+				{
+					$2.type = $1.type;
+					if (ifFlag) {
+						tablesStack.push_back(SymTable());
+						offsetStack.push(offsetStack.top());
+					}
+					
+					if (tablesStack.back().isVarDefined($2.id)) {
+						output::errorDef(yylineno, $2.id.c_str());
+						exit(1);
+					}
+					tablesStack.back().insertVar($2.id,offsetStack.top(),$2.type);
+					int newOffset = offsetStack.top() + 1;
+					offsetStack.pop();
+					offsetStack.push(newOffset);
+					
+					if (ifFlag) {
+						tablesStack.pop_back();
+						offsetStack.pop();
+						ifFlag = false;
+					}
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			| 	Type ID ASSIGN Exp SC
+				{
+					if ($1.type != $4.type) {
+						if ($1.type == string("NIS") && $4.type != string("AGORA") || $1.type == string("AGORA") && $4.type != string("NIS")) {
+							output::errorMismatch(yylineno);
+							exit(1);
+						}
+					}
+					$2.type = $1.type;
+					
+					if (ifFlag) {
+						tablesStack.push_back(SymTable());
+						offsetStack.push(offsetStack.top());
+					}
+					
+					if (tablesStack.back().isVarDefined($2.id)) {
+						output::errorDef(yylineno, $2.id.c_str());
+						exit(1);
+					}
+					
+					tablesStack.back().insertVar($2.id,offsetStack.top(),$2.type);
+					int newOffset = offsetStack.top() + 1;
+					offsetStack.pop();
+					offsetStack.push(newOffset);
+					
+					ostringstream tmpStr;
+					if ($1.type != $4.type) {
+						//converting coins
+						string tmpVar = convertCoins($2.id,$4.id);
+						tmpStr << "s[" << getVarOffsetById($2.id) << "]=s[" << getVarOffsetById(tmpVar) << "]"; 
+						emit(tmpStr.str());
+					} else {
+						tmpStr << "s[" << getVarOffsetById($2.id) << "]=s[" << getVarOffsetById($4.id) << "]";
+						emit(tmpStr.str());
+					}
+					
+					if (ifFlag) {
+						tablesStack.pop_back();
+						offsetStack.pop();
+						ifFlag = false;
+					}
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	ID ASSIGN Exp SC
+				{
+					ifFlag = false;
+					bool isDefined = false;
+					for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+						if(iter->isVarDefined($1.id)) {
+							$1.type = iter->getVarType($1.id);
+							if ($1.type != $3.type) {
+								if ($1.type == string("NIS") && $3.type != string("AGORA") || 
+									$1.type == string("AGORA") && $3.type != string("NIS") ||
+									$1.type != string("NIS") &&	$1.type != string("AGORA")) {
+									output::errorMismatch(yylineno);
+									exit(1);
+								}
+								//converting coins
+								string tmpVar = convertCoins($1.id,$3.id);
+								ostringstream tmpStr;
+								tmpStr << "s[" << getVarOffsetById($1.id) << "]=s[" << getVarOffsetById(tmpVar) << "]";
+								emit(tmpStr.str());
+							} else {
+								ostringstream tmpStr;
+								tmpStr << "s[" << getVarOffsetById($1.id) << "]=s[" << getVarOffsetById($3.id) << "]";
+								emit(tmpStr.str());
+							}
+							isDefined = true;
+							break;
+						}
+					}
+					if (!isDefined) {
+						output::errorUndef(yylineno, $1.id.c_str());
+						exit(1);
+					}
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	PRINT ID SC
+				{
+					ifFlag = false;
+					bool isDefined = false;
+					for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+						if (iter->isVarDefined($2.id)) {
+							$2.type = iter->getVarType($2.id);
+							ostringstream tmpStr;
+							tmpStr << "print s[" << getVarOffsetById($1.id) << "]";
+							emit(tmpStr.str());
+							isDefined = true;
+							break;
+						}
+					}
+					if (!isDefined) {
+						output::errorUndef(yylineno,$2.id.c_str());
+						exit(1);
+					}
+					if ($2.type != string("INT") && $2.type != string("AGORA") && $2.type != string("NIS")) {
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	PRINT STRING SC 
+				{
+					ifFlag = false;
+					ostringstream tmpStr;
+					tmpStr << "print " << $2.str;
+					emit(tmpStr.str());
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	INPUT ID SC
+				{
+					ifFlag = false;
+					bool isDefined = false;
+					for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+						if (iter->isVarDefined($2.id)) {
+							$2.type = iter->getVarType($2.id);
+							ostringstream tmpStr;
+							tmpStr << "input s[" << getVarOffsetById($1.id) << "]";
+							emit(tmpStr.str());
+							isDefined = true;
+							break;
+						}
+					}
+					if (!isDefined) {
+						output::errorUndef(yylineno,$2.id.c_str());
+						exit(1);
+					}
+					if ($2.type != string("INT") && $2.type != string("AGORA") && $2.type != string("NIS")) {
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.breakList = emptyList();
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	IF IfMarker LP expOnMarker Exp expOffMarker RP M Statement
+				{
+					if ($5.type != string("BOOL")) {
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					bp($5.trueList,$8.quad);
+					$$.nextList = merge($5.falseList, $9.nextList);
+					$$.breakList = $9.breakList;
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	IF IfMarker LP expOnMarker Exp expOffMarker RP M Statement ELSE ElseMarker N M Statement 
+				{
+					if ($5.type != string("BOOL")) {
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					bp($5.trueList,$8.quad);
+					bp($5.falseList,$13.quad);
+					$$.nextList = merge(merge($9.nextList,$14.nextList),makelist($12.quad));
+					$$.breakList = merge($9.breakList,$14.breakList);
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	WHILE M WhileCounterMarker LP expOnMarker Exp expOffMarker RP M Statement
+				{
+					if ($6.type != string("BOOL")) {
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					ifFlag = false;
+					whileCounter--;
+					
+					bp($6.trueList,$9.quad);
+					//bp($8.nextList,next());
+					ostringstream tmpStr;
+					tmpStr << "goto " << $2.quad;
+					emit(tmpStr.str());
+					$$.nextList = merge($6.falseList,$10.breakList);
+					$$.breakList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+				}
+			|	BREAK SC 
+				{
+					ifFlag = false;
+					if (whileCounter == 0) {
+						output::errorUnexpectedBreak(yylineno);
+						exit(1);
+					}
+					$$.breakList = makelist(next());
+					$$.nextList = emptyList();
+					$$.falseList = emptyList();
+					$$.trueList = emptyList();
+					emit(string("goto "));
+				}
+	;
+	
+expOnMarker			:	{
+						expFlag = true;
+					}
+	;
+
+expOffMarker			:	{
+						expFlag = false;
+					}
+	;
+
+ElseMarker			:	{
+							if (ifFlag) {
+								tablesStack.pop_back();
+								offsetStack.pop();
+							}
+							ifFlag = true;
+						}
+	;
+	
+IfMarker			:	{
+							ifFlag = true;
+						}
+	;
+	
+WhileCounterMarker	: 	{
+							ifFlag = true;
+							whileCounter++;
+						}
+	;
+	
+CoinType	:	NIS
+				{
+					$$.type = $1.type;
+				}
+			|	AGORA
+				{
+					$$.type = $1.type;
+				}
+	;
+
+Type	:	CoinType
+			{
+				$$.type = $1.type;
+			}
+		|	INT
+			{
+				$$.type = $1.type;
+			}
+		|	BOOL
+			{
+				$$.type = $1.type;
+			}
+	;
+
+Exp		:	LP Exp RP
+			{
+				$$ = $2;
+			}
+		|	Exp PLUS Exp
+			{
+				string tmpVar;
+				if ($1.type == string("") || $3.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $3.type.c_str());
+					exit(1);
+				}
+				if (($1.type == string("INT") &&  $3.type == string("INT")) || 
+					(($1.type == string("AGORA") || $1.type == string("NIS")) && ($3.type == string("AGORA") || $3.type == string("NIS")))
+					) {
+					$$.type = $1.type;
+					if ($1.type != $3.type) {
+						//converting coins
+						tmpVar = convertCoins($1.id,$3.id);
+						//ostringstream tmpStr;
+						//tmpStr << "s[" << getVarOffsetById($1.id) << "]=s[" << getVarOffsetById(tmpVar) << "]";
+						//emit(tmpStr.str());
+					}
+				} else {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.id = createTempVar($$.type);
+				if (tmpVar != string("")) {
+					//conversion
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "+s[" << getVarOffsetById(tmpVar) << "]";
+					emit(tmpStr.str());
+				} else {
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "+s[" << getVarOffsetById($3.id) << "]";
+					emit(tmpStr.str());
+				}
+			}
+		|	Exp MINUS Exp
+			{
+				string tmpVar;
+				if ($1.type == string("") || $3.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $3.type.c_str());
+					exit(1);
+				}
+				if (($1.type == string("INT") &&  $3.type == string("INT")) || 
+					(($1.type == string("AGORA") || $1.type == string("NIS")) && ($3.type == string("AGORA") || $3.type == string("NIS")))
+					) {
+					$$.type = $1.type;
+					if ($1.type != $3.type) {
+						//converting coins
+						tmpVar = convertCoins($1.id,$3.id);
+						//ostringstream tmpStr;
+						//tmpStr << "s[" << getVarOffsetById($1.id) << "]=s[" << getVarOffsetById(tmpVar) << "]";
+						//emit(tmpStr.str());
+					}
+				} else {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.id = createTempVar($$.type);
+				if (tmpVar != string("")) {
+					//conversion
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "-s[" << getVarOffsetById(tmpVar) << "]";
+					emit(tmpStr.str());
+				} else {
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "-s[" << getVarOffsetById($3.id) << "]";
+					emit(tmpStr.str());
+				}
+			}
+		|	Exp MULT Exp
+			{
+				if ($1.type == string("") || $3.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $3.type.c_str());
+					exit(1);
+				}
+				if (($1.type == string("AGORA") || $1.type == string("NIS")) && $3.type == string("INT")) {
+					$$.type = $1.type;
+				} else if (($3.type == string("AGORA") || $3.type == string("NIS")) && $1.type == string("INT")) {
+					$$.type = $3.type;
+				} else if ($1.type == string("INT") && $3.type == string("INT")) {
+					$$.type = $1.type;
+				} else {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.id = createTempVar($$.type);
+				ostringstream tmpStr;
+				tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "*s[" << getVarOffsetById($3.id) << "]";
+				emit(tmpStr.str());
+			}
+		|	Exp DIV Exp
+			{
+				string tmpVar;
+				if ($1.type == string("") || $3.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $3.type.c_str());
+					exit(1);
+				}
+				if (($1.type == string("AGORA") || $1.type == string("NIS")) && $3.type == string("INT")) {
+					$$.type = $1.type;
+				} else if ($1.type == string("INT") && $3.type == string("INT")) {
+					$$.type = $1.type;
+				} else if (($1.type == string("AGORA") || $1.type == string("NIS")) && ($3.type == string("AGORA") || $3.type == string("NIS"))) {
+					$$.type = "INT";
+					if ($1.type != $3.type) {
+						//converting coins
+						tmpVar = convertCoins($1.id,$3.id);
+						//ostringstream tmpStr;
+						//tmpStr << "s[" << getVarOffsetById($1.id) << "]=s[" << getVarOffsetById(tmpVar) << "]";
+						//emit(tmpStr.str());
+					}
+				} else {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.id = createTempVar($$.type);
+				if (tmpVar != string("")) {
+					//conversion
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "/s[" << getVarOffsetById(tmpVar) << "]";
+					emit(tmpStr.str());
+				} else {
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=s[" << getVarOffsetById($1.id) << "]" << "/s[" << getVarOffsetById($3.id) << "]";
+					emit(tmpStr.str());
+				}
+			}
+		|	ID 
+			{
+				$$.type = string("");
+				for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+					if (iter->isVarDefined($1.id)) {
+						$$.type = iter->getVarType($1.id);
+						if (expFlag && $$.type == "BOOL") {
+							ostringstream tmpStr;
+							$$.trueList = makelist(next());
+							tmpStr << "if s[" << getVarOffsetById($1.id) << "]==1 goto ";
+							emit(tmpStr.str());
+							$$.falseList = makelist(next());
+							emit(string("goto "));
+						}
+						break;
+					}
+				}
+			}
+		|	NUM 
+			{
+				$$.type = $1.type;
+				string tmpVar = createTempVar($$.type);
+				$$.id = tmpVar;
+				ostringstream tmpStr;
+				tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=" << $1.val;
+				emit(tmpStr.str());
+			}
+		|	NUM CoinType 
+			{
+				$$.type = $2.type;
+				string tmpVar = createTempVar($$.type);
+				$$.id = tmpVar;
+				ostringstream tmpStr;
+				tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=" << $1.val;
+				emit(tmpStr.str());
+			}
+		|	TRUE 
+			{
+				$$.type = $1.type;
+				if (ifFlag) {
+					$$.trueList = makelist(next());
+					emit(string("goto "));
+				} else {
+					string tmpVar = createTempVar($$.type);
+					$$.id = tmpVar;
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=" << $1.val;
+					emit(tmpStr.str());
+				}
+				$$.falseList = emptyList(); 
+                                $$.nextList = emptyList(); 
+                                $$.breakList = emptyList();
+			}
+		|	FALSE 
+			{
+				$$.type = $1.type;
+				if (ifFlag) {
+					$$.falseList = makelist(next());
+					emit(string("goto "));
+				} else {
+					string tmpVar = createTempVar($$.type);
+					$$.id = tmpVar;
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById(tmpVar) << "]=" << $1.val;
+					emit(tmpStr.str());
+				}
+				$$.trueList = emptyList(); 
+                                $$.nextList = emptyList(); 
+                                $$.breakList = emptyList();
+			}
+		|	NOT Exp 
+			{
+				if ($2.type == string("")){
+					output::errorUndef(yylineno, $2.type.c_str());
+					exit(1);
+				}
+				$$.type = $2.type;
+				if (ifFlag) {
+					$$.trueList = $2.falseList;
+					$$.falseList = $2.trueList;
+				} else {
+					$$.id = createTempVar($$.type);
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=1-" << "s[" << getVarOffsetById($2.id) << "]";
+					emit(tmpStr.str());
+				}
+			}
+		|	Exp OR M Exp 
+			{
+				if ($1.type == string("") || $4.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $4.type.c_str());
+					exit(1);
+				}
+				if ($1.type != string("BOOL") || $4.type != string("BOOL")) {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.type = $1.type;
+				if (ifFlag) {
+					bp($1.falseList,$3.quad);
+					$$.falseList = $4.falseList;
+					$$.trueList = merge($1.trueList,$4.trueList);
+				} else {
+					//de-morgan for OR
+					string tempVar1 = createTempVar($$.type);
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById(tempVar1) << "]=1-" << "s[" << getVarOffsetById($1.id) << "] ";
+					emit(tmpStr.str());
+					string tempVar2 = createTempVar($$.type);
+					ostringstream tmpStr2;
+					tmpStr2 << "s[" << getVarOffsetById(tempVar2) << "]=1-" << "s[" << getVarOffsetById($4.id) << "] ";
+					emit(tmpStr2.str());
+					string tempVar3= createTempVar($$.type);
+					ostringstream tmpStr3;
+					tmpStr3 << "s[" << getVarOffsetById(tempVar3) << "]=" << "s[" << getVarOffsetById(tempVar1) << "]*" << "s[" << getVarOffsetById(tempVar2) << "]";
+					emit(tmpStr3.str());
+					$$.id = createTempVar($$.type);
+					ostringstream tmpStr4;
+					tmpStr4 << "s[" << getVarOffsetById($$.id) << "]=1-" << "s[" << getVarOffsetById(tempVar3) << "]";
+					emit(tmpStr4.str());
+				}
+			}
+		|	Exp AND M Exp
+			{
+				if ($1.type == string("") || $4.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $4.type.c_str());
+					exit(1);
+				}
+				if ($1.type != string("BOOL") || $4.type != string("BOOL")) {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				$$.type = $1.type;
+				if (ifFlag) {
+					bp($1.trueList,$3.quad);
+					$$.trueList = $4.trueList;
+					$$.falseList = merge($1.falseList,$4.falseList);
+				} else {
+					$$.id = createTempVar($$.type);
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=" << "s[" << getVarOffsetById($1.id) << "]*" << "s[" << getVarOffsetById($4.id) << "]";
+					emit(tmpStr.str());	
+				}
+			}
+
+		|	Exp REL_OP Exp 
+			{
+				if ($1.type == string("") || $3.type == string("")){
+					output::errorUndef(yylineno, $1.type == string("") ? $1.type.c_str() : $3.type.c_str());
+					exit(1);
+				}
+				if (
+					(($1.type == string("AGORA") || $1.type == string("NIS")) && ($3.type == string("AGORA") || $3.type == string("NIS")))
+					|| ($1.type == string("INT") && $3.type == string("INT"))
+					) {
+					if ($1.type != $3.type) {
+						$3.id = convertCoins($1.id, $3.id);
+					}
+					$$.type = "BOOL";
+				} else {
+					output::errorMismatch(yylineno);
+					exit(1);
+				}
+				
+				$$.trueList = makelist(next());
+					if ($2.str == "<=") {
+						ostringstream tmpStr;
+						tmpStr << "if s[" << getVarOffsetById($1.id) << "]<s[" << getVarOffsetById($3.id) << "]" << " goto ";
+						emit(tmpStr.str());
+						$$.trueList = merge(makelist(next()),$$.trueList);
+						ostringstream tmpStr2;
+						tmpStr2 << "if s[" << getVarOffsetById($1.id) << "]==s[" << getVarOffsetById($3.id) << "]" << " goto ";
+						emit(tmpStr2.str());
+					} else if ($2.str == ">=") {
+						ostringstream tmpStr;
+						tmpStr << "if s[" << getVarOffsetById($1.id) << "]>s[" << getVarOffsetById($3.id) << "]" << " goto ";
+						emit(tmpStr.str());
+						$$.trueList = merge(makelist(next()),$$.trueList);
+						ostringstream tmpStr2;
+						tmpStr2 << "if s[" << getVarOffsetById($1.id) << "]==s[" << getVarOffsetById($3.id) << "]" << " goto ";
+						emit(tmpStr2.str());
+					} else {
+						ostringstream tmpStr;
+						tmpStr << "if s[" << getVarOffsetById($1.id) << "]" << $2.str << "s[" << getVarOffsetById($3.id) << "]" << " goto ";
+						emit(tmpStr.str());
+					}
+					$$.falseList = makelist(next());
+					emit(string("goto "));
+				if (!ifFlag) {
+					$$.id = createTempVar($$.type);
+					bp($$.trueList,next());
+					ostringstream tmpStr;
+					tmpStr << "s[" << getVarOffsetById($$.id) << "]=" << "1";
+					emit(tmpStr.str());
+					$$.nextList = makelist(next());
+					emit(string("goto "));
+					bp($$.falseList,next());
+					ostringstream tmpStr2;
+					tmpStr2 << "s[" << getVarOffsetById($$.id) << "]=" << "0";
+					emit(tmpStr2.str());
+					bp($$.nextList,next());
+				}
+			}
+		
+	;
+M	:	{
+			$$.quad = next();
+		}
+	;
+N	:	{
+			$$.quad = next();
+			emit(string("goto "));
+		}
+%%
+
+int main()
+{
+	yyparse();
+}
+
+int yyerror(string message)
+{
+	output::errorSyn(yylineno);
+}

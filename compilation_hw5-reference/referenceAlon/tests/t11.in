@@ -1,0 +1,8 @@
+// scope in loop, semerr2
+{
+	matrix m(2,2);
+foreach (y in m)
+			int x;
+			print x;
+}
+
