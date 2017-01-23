@@ -1,0 +1,523 @@
+%{
+	#include "hw4.hpp"
+	#include "output.hpp"
+	#include "symTable.hpp"
+	#include <iostream>
+	#include <stdio.h>
+	#include <vector>
+	#include <stack>
+	
+	using namespace std;
+	using namespace output;
+
+	extern int yylex();
+	extern int yylineno;
+	extern const char* yytext;
+	extern FILE* yyin;
+	
+	void yyerror(const char*);
+	bool isTemperture(string type);
+	bool checkAssignmentTyps(string t1, string t2);
+	string findVarType(string id);
+	void printStype(YYSTYPE yst, string msg);
+	bool isVarDefined(string id);
+
+	vector<SymTable> tablesStack;
+	stack<int> offsetStack;
+
+	bool condScopeFlag = false;
+	int whileCounter = 0;
+
+	#define OFFSET_SIZE 1
+%}
+
+
+
+%token LP RP LC RC SC CELSIUS FAHRENHEIT KELVIN INT PRINT INPUT ID STRING TRUE FALSE BOOL IF ELSE WHILE BREAK NUM SWITCH CASE COLON
+
+%nonassoc IFX
+%nonassoc ELSE
+%right ASSIGN
+%left OR
+%left AND
+%left REL_OP
+%left PLUS MINUS
+%left MULT DIV
+%right NOT
+
+%%   
+
+Prog	:	InitMarker stmts FinishMarker
+
+stmts	:  	stmt aux { 
+				//cout << "stmts: stmt aux" << endl;
+				}
+aux		: 	stmt aux {
+				//cout << "aux: stmt aux" << endl;
+				}
+			| { 
+				//cout << "epsilon" << endl;
+				}
+stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
+				{
+					//cout << "LC StartScopeMarker stmts EndScopeMarker RC" << endl;
+				}	
+			| StartScopeMarkerIfCond Type ID SC
+				{
+					//~ cout << "Type ID SC" << endl;
+					$3.type = $2.type;
+					//~ cout << yytext << endl;
+					//~ cout << condScopeFlag << endl;
+					if (isVarDefined($3.id)) {
+						errorDef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top());
+					int newOffset = offsetStack.top() + OFFSET_SIZE;
+					offsetStack.pop();
+					offsetStack.push(newOffset);		
+				}
+			| StartScopeMarkerIfCond Type ID ASSIGN Exp SC 
+				{
+					//~ cout << "Type ID ASSIGN Exp SC" << endl;
+					//~ cout << "cond: "<<condScopeFlag << endl;
+					$3.type = $2.type;
+					if (isVarDefined($3.id)) {
+						errorDef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (!checkAssignmentTyps($2.type, $5.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top());
+					int newOffset = offsetStack.top() + OFFSET_SIZE;
+					offsetStack.pop();
+					offsetStack.push(newOffset);
+				}
+			| setCondFlagOff ID ASSIGN Exp SC
+				{
+					//cout << "ID ASSIGN Exp SC" << endl;
+					string idType = findVarType($2.id);
+					if (idType == string("")) {
+						errorUndef(yylineno, $2.id.c_str());
+						exit(1);
+					}
+					
+					if (!checkAssignmentTyps(idType, $4.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| setCondFlagOff PRINT STRING SC { 
+				//cout << "PRINT STRING SC" << endl; 
+				}
+			| setCondFlagOff PRINT ID SC
+				{
+					//cout << "PRINT ID SC" << endl;
+					string idType = findVarType($3.id);
+					if (idType == string("")){
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (idType == string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| setCondFlagOff INPUT ID SC
+				{
+					//cout << "INPUT ID SC" << endl;
+					string idType = findVarType($3.id);
+					if (idType == string("")){
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (idType == string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| IF LP ForceBoolExp SetCondFlagOn RP stmt EndScopeMarkerIfCond %prec IFX
+				{
+					//~ cout << "IF LP Exp RP stmt %prec IFX" << endl;
+				}
+			| IF LP ForceBoolExp SetCondFlagOn RP stmt EndScopeMarkerIfCond ELSE SetCondFlagOn stmt EndScopeMarkerIfCond
+				{
+					//~ cout << "IF LP Exp RP stmt ELSE stmt" << endl;
+					//~ condScopeFlag = 1;
+				}
+			| WHILE LP ForceBoolExp SetCondFlagOn RP WhileMarker stmt EndScopeMarkerIfCond
+				{
+					//cout << "WHILE LP Exp RP WhileMarker stmt" << endl;
+						whileCounter--;
+				}
+			| setCondFlagOff BREAK SC
+				{
+					//~ cout << "BREAK SC" << endl;
+					//~ cout << condScopeFlag << endl;
+					if (whileCounter <= 0 ) {
+						errorUnexpectedBreak(yylineno);
+						exit(1);
+					}
+				}
+			| SWITCH LP ForceTempExp RP LC CasesList RC
+				{
+					//cout << "SWITCH LP Exp RP LC StartScopeMarker CasesList EndScopeMarker RC" << endl;
+				}
+		
+CasesList : CaseStat CasesList { 
+				//cout << "CaseStat CasesList " << endl;
+				}
+			| CaseStat { 
+				//cout << "CaseStat " << endl;
+				}
+
+CaseStat  : CASE NUM TempType COLON SetCondFlagOn stmt BREAK SC EndScopeMarkerIfCond
+				{ 
+					//cout << "CASE NUM TempType COLON StartScopeMarker stmt BREAK SC EndScopeMarker " << endl;
+				}
+
+TempType  : CELSIUS
+				{
+					//cout << "CELSIUS" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| FAHRENHEIT
+				{
+					//cout << "FAHRENHEIT" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| KELVIN
+				{
+					//cout << "KELVIN" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			
+Type	  : TempType
+				{
+					//cout << "TempType" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| INT
+				{
+					//cout << "INT" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+					//~ printStype($1, "INT");
+					//~ printStype($$, "Type");
+				}
+			| BOOL
+				{
+					//cout << "BOOL" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+				
+ForceTempExp	: Exp
+					{
+						if (!isTemperture($1.type)) {
+							errorMismatch(yylineno);
+							exit(1);
+						} 
+						$$ = $1;
+					}
+ForceBoolExp	: 	Exp 
+					{
+						//cout << "ForceBoolExp" << endl;
+						if ($1.type != string("BOOL")){
+							errorMismatch(yylineno);
+							exit(1);
+						}
+						//~ condScopeFlag = true;
+						$$ = $1;
+					}
+Exp		  : LP Exp RP 
+				{
+					//cout << "LP Exp RP" << endl;
+					$$.type = $2.type;
+					//~ $$.val = $2.val;
+				}
+			| Exp PLUS Exp
+				{
+					//cout << "Exp PLUS Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						//~ $$.val = $1.val + $3.val;
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = $1.type;
+					//	$$.val = $1.val + $3.val;
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| Exp MINUS Exp
+				{
+					//cout << "Exp MINUS Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						//~ $$.val = $1.val - $3.val;
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = $1.type;
+					//	$$.val = $1.val - $3.val; //need to convert
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| Exp MULT Exp
+				{
+						//cout << "Exp MULT Exp" << endl;
+					if ($1.type == string("BOOL") || $3.type == string("BOOL")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}					
+					if (isTemperture($1.type) && isTemperture($3.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						//~ $$.val = $1.val * $3.val;
+					} else /*1 temp & 1 int*/ {
+						YYSTYPE temp = isTemperture($1.type) ? $1 : $3;
+						YYSTYPE num = !isTemperture($1.type) ? $1 : $3;
+						$$.type = temp.type;
+						//~ $$.val = temp.val * num.val;
+					}
+				}
+			| Exp DIV Exp
+				{
+					//cout << "Exp DIV Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						//~ $$.val = $1.val / $3.val;
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = string("INT");
+					//	$$.val = $1.type / $3.type;
+					} else if(isTemperture($1.type) && $3.type == string("INT")) {
+						$$.type = $1.type;
+						//~ $$.val = $1.val / $3.val;
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| ID
+				{	
+					//cout << "ID" << endl;
+					string varType = findVarType($1.id);
+					if (varType == string("")) {
+						errorUndef(yylineno, $1.id.c_str());
+						exit(1);
+					}
+					$$.type = varType;
+					$$.id = $1.id;
+					//~ $$.val = $1.val;
+				}
+			| NUM
+				{
+					//cout << "NUM" << endl;
+					if ($1.type != string("INT")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| NUM TempType 
+				{
+					//cout << "NUM TempType " << endl;
+					if (!(isTemperture($2.type)) ||
+					!($1.type == string("INT"))) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = $2.type;
+					//~ $$.val = $1.val;
+				}
+			| TRUE
+				{
+					//cout << "TRUE" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| FALSE
+				{
+					//cout << "FALSE" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| NOT Exp 
+				{
+					//cout << "NOT Exp" << endl;
+					if ($2.type != string("BOOL")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = string("BOOL");
+					//~ $$.val = !($2.val);
+				}
+			| Exp OR Exp
+				{
+					//cout << "Exp OR Exp" << endl;
+					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					//~ if ($1.val == 1 || $3.val == 1){
+						//~ $$.val = 1;
+					//~ } else {
+						//~ $$.val = 0;
+					//~ }
+					$$.type = string("BOOL");
+				}
+			| Exp AND Exp
+				{
+					//cout << "Exp AND Exp" << endl;
+					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					//~ if ($1.val == 0 || $3.val == 0){
+						//~ $$.val = 0;
+					//~ } else {
+						//~ $$.val = 1;
+					//~ }
+					$$.type = string("BOOL");
+				}
+			| Exp REL_OP Exp 
+				{
+					//cout << "Exp REL_OP Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = string("BOOL");
+						/////handle > / < / <= / >=
+					}					
+					else if (isTemperture($1.type) && isTemperture($3.type)) {
+								$$.type = string("BOOL");
+								/////handle > / < / <= / >=
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+
+setCondFlagOff	: {
+					condScopeFlag = false;
+				  }
+
+SetCondFlagOn : {
+				//cout << "setCondFlag " << endl;
+				condScopeFlag = true;
+				}
+
+InitMarker	:	{
+					//cout << "InitMarker" << endl;
+					tablesStack.push_back(SymTable());
+					offsetStack.push(0);
+				}
+FinishMarker : 	{
+					//cout << "FinishMarker" << endl;
+					endScope();
+					tablesStack.back().printTable();
+					tablesStack.pop_back();
+					offsetStack.pop();
+				}
+
+WhileMarker	 :	{
+					//cout << "WhileMarker" << endl;
+					whileCounter++;
+				}
+			
+
+EndScopeMarker	:	{
+						//cout << "EndScopeMarker" << endl;
+						condScopeFlag = false;
+						endScope();
+						tablesStack.back().printTable();
+						tablesStack.pop_back();
+						offsetStack.pop();
+					}				
+					
+StartScopeMarker	:	{
+							//cout << "StartScopeMarker" << endl;
+							condScopeFlag = false;
+							tablesStack.push_back(SymTable());
+							offsetStack.push(offsetStack.top());
+						}
+
+EndScopeMarkerIfCond	:	{
+								if (condScopeFlag){
+									condScopeFlag = false;
+									endScope();
+									tablesStack.back().printTable();
+									tablesStack.pop_back();
+									offsetStack.pop();
+								}
+							}				
+					
+StartScopeMarkerIfCond	:	{
+								if (condScopeFlag){
+									tablesStack.push_back(SymTable());
+									offsetStack.push(offsetStack.top());
+								}
+							}
+
+%%
+
+void yyerror(const char*){
+	errorSyn(yylineno);
+	exit(1);
+}
+
+bool checkAssignmentTyps(string t1, string t2) {	
+	if (t2 == string("BOOL") && t1 != string("BOOL")) return false;
+	if (t2 == string("INT") && t1 != string("INT")) return false;
+	if (isTemperture(t2) && !isTemperture(t1)) return false;
+	
+	return true;
+}
+string findVarType(string id) {
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return iter->getVarType(id);
+		}
+	}
+	return string("");
+}
+
+bool isVarDefined(string id){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool isTemperture(string type) {
+	return (type == string("FAHRENHEIT") || type == string("CELSIUS") || type == string("KELVIN"));
+}
+
+void printStype(YYSTYPE yst, string msg){
+	cout << msg + ":" << endl;
+	cout << "type = " + yst.type << endl;
+	cout << "id = " + yst.id << endl;
+	//~ cout << "val = " + yst.val << endl;	
+}
+int main(int argc, char* argv[]) {
+	if (argc < 2) {
+		exit(1);
+	}
+	yyin = fopen(argv[1], "r");
+	int parse_res = yyparse();
+	if (yyin != NULL){
+		fclose(yyin);
+	}
+	return parse_res;
+}
