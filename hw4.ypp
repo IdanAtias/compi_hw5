@@ -21,12 +21,26 @@
 	string findVarType(string id);
 	void printStype(YYSTYPE yst, string msg);
 	bool isVarDefined(string id);
+	string newTemp();
 
+	//conversions
+	double celsiusToKelvin(double);
+	double celsiusToFahrenheit(double);
+	
+	double kelvinToCelsius(double);
+	double kelvinToFahrenheit(double);
+	
+	double fahrenheitToCelsius(double);
+	double fahrenheitToKelvin(double);
+	
+	
 	vector<SymTable> tablesStack;
 	stack<int> offsetStack;
 
 	bool condScopeFlag = false;
 	int whileCounter = 0;
+	
+	int tmpIdx = 1;
 
 	#define OFFSET_SIZE 1
 %}
@@ -470,6 +484,14 @@ StartScopeMarkerIfCond	:	{
 
 %%
 
+string newTemp()
+{
+	ostringstream os;
+	os << "@t" << tmpIdx;
+	tmpIdx++;
+	return os.str();	
+}
+
 void yyerror(const char*){
 	errorSyn(yylineno);
 	exit(1);
@@ -502,6 +524,34 @@ bool isVarDefined(string id){
 
 bool isTemperture(string type) {
 	return (type == string("FAHRENHEIT") || type == string("CELSIUS") || type == string("KELVIN"));
+}
+
+double celsiusToKelvin(double cel){
+	return cel + 273;
+	
+}
+
+double celsiusToFahrenheit(double cel){
+	return (cel * 9 / 5) + 32;	
+}
+	
+double kelvinToCelsius(double kel){
+	return kel - 273;
+}
+
+double kelvinToFahrenheit(double kel){
+	double cel = kelvinToCelsius(kel);
+	return celsiusToFahrenheit(cel);
+}
+
+double fahrenheitToCelsius(double fah){
+	return (fah - 32) * 5 / 9;
+	
+}
+
+double fahrenheitToKelvin(double fah){
+	double cel = fahrenheitToCelsius(fah);
+	return celsiusToKelvin(cel);
 }
 
 void printStype(YYSTYPE yst, string msg){
