@@ -9,6 +9,7 @@ typedef struct {
 	string type;
 	string id;
 	string place;
+	int quad;
 	
 	//lists
 	list<int> truelist;

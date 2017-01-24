@@ -70,19 +70,26 @@
 
 Prog	:	InitMarker stmts FinishMarker
 
-stmts	:  	stmt aux { 
-				//cout << "stmts: stmt aux" << endl;
-				}
-aux		: 	stmt aux {
-				//cout << "aux: stmt aux" << endl;
-				}
-			| { 
-				//cout << "epsilon" << endl;
-				}
+stmts	:  	stmt aux 
+					{ 
+						//cout << "stmts: stmt aux" << endl;
+						bp($1.nextList, next());
+					}
+				
+aux		: 	stmt aux 
+					{
+						//cout << "aux: stmt aux" << endl;
+						bp($1.nextList, next());
+					}
+				
+				|   { 
+						//cout << "epsilon" << endl;
+					}
 stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 				{
 					//cout << "LC StartScopeMarker stmts EndScopeMarker RC" << endl;
-				}	
+					$$.nextList = list<int>();
+				}
 			| StartScopeMarkerIfCond Type ID SC
 				{
 					//~ cout << "Type ID SC" << endl;
@@ -97,6 +104,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 					int newOffset = offsetStack.top() + OFFSET_SIZE;
 					offsetStack.pop();
 					offsetStack.push(newOffset);		
+					$$.nextList = list<int>();
 				}
 			| StartScopeMarkerIfCond Type ID ASSIGN Exp SC 
 				{
@@ -115,6 +123,11 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 					int newOffset = offsetStack.top() + OFFSET_SIZE;
 					offsetStack.pop();
 					offsetStack.push(newOffset);
+					
+					ostringstream os;
+					os << "s[" << findVarOffset($3.id) << "]" << "=" << $5.place;
+					emit(os.str());
+					$$.nextList = list<int>();
 				}
 			| setCondFlagOff ID ASSIGN Exp SC
 				{
@@ -129,9 +142,19 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
+					
+					ostringstream os;
+					os << "s[" << findVarOffset($2.id) << "]" << "=" << $4.place;
+					emit(os.str());
+					$$.nextList = list<int>();
 				}
-			| setCondFlagOff PRINT STRING SC { 
-				//cout << "PRINT STRING SC" << endl; 
+			| setCondFlagOff PRINT STRING SC 
+				{ 
+					//cout << "PRINT STRING SC" << endl; 
+					ostringstream os;
+					os << "print " << $3.id;
+					emit(os.str());
+					$$.nextList = list<int>();	
 				}
 			| setCondFlagOff PRINT ID SC
 				{
@@ -145,6 +168,11 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
+					
+					ostringstream os;
+					os << "print s[" << findVarOffset($3.id) << "]";
+					emit(os.str());
+					$$.nextList = list<int>();	
 				}
 			| setCondFlagOff INPUT ID SC
 				{
@@ -158,20 +186,31 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
+					// TODO: need to update $$.type?
+					ostringstream os;
+					os << "input s[" << findVarOffset($3.id) << "]";
+					emit(os.str());
+					$$.nextList = list<int>();	
 				}
-			| IF LP ForceBoolExp SetCondFlagOn RP stmt EndScopeMarkerIfCond %prec IFX
+			| IF LP ForceBoolExp SetCondFlagOn RP M stmt EndScopeMarkerIfCond %prec IFX
 				{
 					//~ cout << "IF LP Exp RP stmt %prec IFX" << endl;
+					bp($3.truelist, $6.quad);
+					$$.nextList = merge($3.falseList, $7.nextList);
 				}
-			| IF LP ForceBoolExp SetCondFlagOn RP stmt EndScopeMarkerIfCond ELSE SetCondFlagOn stmt EndScopeMarkerIfCond
+			| IF LP ForceBoolExp SetCondFlagOn RP M stmt EndScopeMarkerIfCond 
+					ELSE SetCondFlagOn N M stmt EndScopeMarkerIfCond
 				{
 					//~ cout << "IF LP Exp RP stmt ELSE stmt" << endl;
-					//~ condScopeFlag = 1;
+					bp($3.truelist, $6.quad);
+					bp($3.falseList, $12.quad);
+					$$.nextList = merge(merge($7.nextList, $13.nextList), $11.nextlist);
 				}
-			| WHILE LP ForceBoolExp SetCondFlagOn RP WhileMarker stmt EndScopeMarkerIfCond
+			| WHILE LP M ForceBoolExp SetCondFlagOn RP WhileMarker M stmt EndScopeMarkerIfCond
 				{
 					//cout << "WHILE LP Exp RP WhileMarker stmt" << endl;
-						whileCounter--;
+					whileCounter--;
+					bp($4.truelist, 
 				}
 			| setCondFlagOff BREAK SC
 				{
@@ -453,44 +492,118 @@ Exp		  : LP Exp RP
 					}
 					
 				}
-			| Exp OR Exp
+			| Exp OR M Exp
 				{
 					//cout << "Exp OR Exp" << endl;
 					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
 						errorMismatch(yylineno);
 						exit(1);
 					}
-					//~ if ($1.val == 1 || $3.val == 1){
-						//~ $$.val = 1;
-					//~ } else {
-						//~ $$.val = 0;
-					//~ }
+					if(isAssignmentStmt){
+						$$.place = newTemp();
+						ostringstream os;
+						os << "if " << $1.place << " == 1 goto " << next()+4;
+						emit(os.str());
+						os.str("");
+						os << "if " << $4.place << " == 1 goto " << next()+3;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=0";
+						emit(os.str());
+						os.str("");
+						os << "goto " << next()+2;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=1";
+						emit(os.str());
+					} else {
+						bp($1.falseList, $3.quad);
+						$$.trueList = merge($1.trueList, $4.trueList);
+						$$.falseList = $4.falseList;
+					}
 					$$.type = string("BOOL");
 				}
-			| Exp AND Exp
+			| Exp AND M Exp
 				{
 					//cout << "Exp AND Exp" << endl;
 					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
 						errorMismatch(yylineno);
 						exit(1);
 					}
-					//~ if ($1.val == 0 || $3.val == 0){
-						//~ $$.val = 0;
-					//~ } else {
-						//~ $$.val = 1;
-					//~ }
+					if(isAssignmentStmt){
+						$$.place = newTemp();
+						createNewSymbol($$.place, $$.type);
+						ostringstream os;
+						os << "if " << $1.place << " == 0 goto " << next()+4;
+						emit(os.str());
+						os.str("");
+						os << "if " << $4.place << " == 0 goto " << next()+3;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=1";
+						emit(os.str());
+						os.str("");
+						os << "goto " << next()+2;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=0";
+						emit(os.str());
+					}
+					else{
+						bp($1.trueList, $3.quad);
+						$$.falseList = merge($1.falseList, $4.falseList);
+						$$.trueList = $4.trueList;
+					}
 					$$.type = string("BOOL");
 				}
 			| Exp REL_OP Exp 
 				{
 					//cout << "Exp REL_OP Exp" << endl;
-					if ($1.type == string("INT") && $3.type == string("INT")) {
+					if (isTemperture($1.type) && isTemperture($3.type)) {
+						$3.place = genConversionCode($3, $1.type);	
+					}
+					
+					if (($1.type == string("INT") && $3.type == string("INT")) ||
+							(isTemperture($1.type) && isTemperture($3.type))) {
+						
 						$$.type = string("BOOL");
-						/////handle > / < / <= / >=
-					}					
-					else if (isTemperture($1.type) && isTemperture($3.type)) {
-								$$.type = string("BOOL");
-								/////handle > / < / <= / >=
+						ostringstream os;
+						
+						if ($2.id == string("<=") {
+								os << $1.place << " = " << $1.place << " -1";
+								emit(os.str());
+								$2.id = "<";
+						}
+						
+						if ($2.id == string(">=") {
+							os << $1.place << " = " << $1.place << " +1";
+							emit(os.str());
+							$2.id = ">";	
+						}
+						
+						if (isAssignmentStmt) {
+							$$.place = newTemp();
+							os.str("");
+							os << "if " << $1.place << $2.id << $3.place << " goto " << next()+3;
+							emit(os.str());
+							os.str("");
+							os << $$.place << "=0";
+							emit(os.str());
+							os.str("");
+							os << "goto " << next()+2;
+							emit(os.str());
+							os.str("");
+							os << $$.place << "=1";
+							emit(os.str());
+							os.str("");
+						} else {
+							
+							$$.trueList = makelist(next());
+							os << "if " << $1.place << " " << $2.id << " " << $3.place << " goto ";
+							emit(os.str());
+							$$.falseList = makelist(next());
+							emit("goto ");
+						}
 					} else {
 						errorMismatch(yylineno);
 						exit(1);
@@ -557,6 +670,16 @@ StartScopeMarkerIfCond	:	{
 									offsetStack.push(offsetStack.top());
 								}
 							}
+							
+M: {
+	 $$.quad = next();
+   }
+
+N: {
+	$$.nextlist = makelist(next());
+	emit("goto "); 
+   }
+
 
 %%
 

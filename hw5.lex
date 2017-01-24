@@ -45,7 +45,10 @@ ignore			([\t\n\r ])
 [-]			return handleToken(MINUS);
 [*] 		return handleToken(MULT);
 [/]			return handleToken(DIV);
-{rel_op}	return handleToken(REL_OP);
+{rel_op}	{
+				yylval.id = yytext;
+				return REL_OP;
+			};
 and			return handleToken(AND);
 or			return handleToken(OR);
 C			{
