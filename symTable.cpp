@@ -34,3 +34,12 @@ string SymTable::getVarType(string id) const {
 	}
 	return string("");
 }
+
+int SymTable::getVarOffset(string id) const {
+	for (vector<TableLine>::const_iterator it=table.begin(); it != table.end(); it++){
+		if (it->id == id){
+			return it->offset;
+		}
+	}
+	return -1;
+}

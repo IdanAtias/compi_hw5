@@ -89,6 +89,7 @@ bool			{
 				};
 {num}			{
 					yylval.type = "INT";
+					yylval.id = yytext;
 					return NUM;
 				};
 switch			return handleToken(SWITCH);

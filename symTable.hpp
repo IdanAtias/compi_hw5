@@ -19,7 +19,8 @@ public:
 		void insertVar(string id, string type, int offset);
 		bool isVarDefined(string id) const;
 		void printTable() const;  
-		string getVarType(string id) const;  //Remark: probably for type chacking
+		string getVarType(string id) const;
+		int getVarOffset(string id) const;
 };
 
 #endif
