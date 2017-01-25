@@ -1,0 +1,12 @@
+s[0]=1
+print "Pass 1"
+goto 4
+print "This shouldn't be printed #1"
+s[1]=1
+print "Pass 2"
+goto 8
+print "This shouldn't be printed #1"
+s[2]=1
+print "Pass 3"
+goto 12
+print "This shouldn't be printed #1"

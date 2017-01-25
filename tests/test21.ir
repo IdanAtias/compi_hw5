@@ -1,0 +1,17 @@
+s[0]=0
+print "Shouldn't be printed #1"
+goto 0
+s[1]=100
+s[2]=s[1]
+s[3]=200
+s[6]=s[3]-32
+s[7]=s[6]*5
+s[5]=s[7]/9
+s[4]=s[3]
+s[8]=s[2]
+s[9]=s[4]
+if s[8] == s[9] goto 14
+goto 16
+print "Shouldn't be printed #2"
+goto 10
+print "Only this line should be printed"

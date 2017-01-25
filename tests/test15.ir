@@ -1,0 +1,23 @@
+s[0]=212
+s[1]=s[0]
+s[2]=s[1]
+goto 10
+print "This shouldn't be printed"
+goto 23
+print "Pass"
+goto 23
+print "Your switch statement doesn't convert temperatures correctly, or you need to reverse the order"
+goto 23
+s[3]=1000
+s[4]=s[3]-273
+s[6]=s[4]*9
+s[7]=s[6]/5
+s[5]=s[7]+32
+if s[2]==s[5] goto 4
+s[8]=100
+s[10]=s[8]*9
+s[11]=s[10]/5
+s[9]=s[11]+32
+if s[2]==s[9] goto 6
+if s[2]==212 goto 8
+goto 23

@@ -12,7 +12,7 @@ void SymTable::insertVar(string id, string type, int offset, bool isAssigned) {
 	//~ this->printTable();
 }
 
-bool SymTable::isVarDefined(string id) const {
+bool SymTable::isVarDefined(string id) const{
 	for (vector<TableLine>::const_iterator it = table.begin(); it != table.end(); it++){
 		if (it->id == id){
 			return true;
@@ -21,7 +21,7 @@ bool SymTable::isVarDefined(string id) const {
 	return false;
 }
 
-void SymTable::printTable() const {
+void SymTable::printTable() const{
 	for (vector<TableLine>::const_iterator it = table.begin(); it != table.end(); it++){
 		output::printVar(it->id.c_str(), it->offset, it->type.c_str());
 	}
@@ -55,7 +55,7 @@ bool SymTable::isVarAssigned(string id) const {
 }
 
 void SymTable::setIsVarAssigned(string id, bool val) {
-	for (vector<TableLine>::const_iterator it = table.begin(); it != table.end(); it++){
+	for (vector<TableLine>::iterator it = table.begin(); it != table.end(); it++){
 		if (it->id == id){
 			it->isAssigned = val;
 		}

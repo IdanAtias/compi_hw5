@@ -1,0 +1,10 @@
+s[0]=100
+goto 6
+print "This shouldn't be printed #1"
+goto 9
+print "This shouldn't be printed #2"
+goto 9
+if s[0]==10 goto 2
+if s[0]==20 goto 4
+goto 9
+print "Pass"

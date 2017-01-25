@@ -1,0 +1,22 @@
+s[0]=1
+s[1]=s[0]
+s[2]=0
+s[3]=s[2]
+if s[1] == 1 goto 8
+goto 6
+if s[3] == 1 goto 8
+goto 9
+print "Pass 1"
+if s[1] == 1 goto 11
+goto 14
+if s[3] == 1 goto 13
+goto 14
+print "This shouldn't be printed #1"
+if s[3] == 1 goto 17
+goto 16
+print "Pass 2"
+if s[1] == 1 goto 19
+goto 22
+if s[3] == 1 goto 22
+goto 21
+print "Pass 3"

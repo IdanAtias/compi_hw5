@@ -1,0 +1,13 @@
+s[0]=0
+s[1]=s[0]
+s[2]=s[1]
+s[3]=4
+if s[2] < s[3] goto 6
+goto 12
+print "This should appear 4 times"
+s[4]=s[1]
+s[5]=1
+s[6]=s[4] + s[5]
+s[1]=s[6]
+goto 2
+print "End of while"

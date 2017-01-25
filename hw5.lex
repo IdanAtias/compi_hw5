@@ -12,8 +12,8 @@
     #include <string.h>
     #include <stdio.h>
     #include <iostream>
-    #include "hw4.hpp"
-    #include "hw4.tab.hpp"
+    #include "hw5.hpp"
+    #include "hw5.tab.hpp"
     #include "output.hpp"
     using namespace output;
 	int handleToken(int token);
@@ -63,9 +63,6 @@ K			{
 				yylval.type = "KELVIN";
 				return KELVIN;	
 			};
-foreach		{
-				return FOREACH;
-			}
 int			{
 				yylval.type = "INT";
 				return INT;	
@@ -87,6 +84,9 @@ false			{
 if				return handleToken(IF);
 else			return handleToken(ELSE);
 while			return handleToken(WHILE);
+foreach		{
+				return FOREACH;
+			};
 break			return handleToken(BREAK);
 not				return handleToken(NOT);
 bool			{

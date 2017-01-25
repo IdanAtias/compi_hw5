@@ -1,0 +1,15 @@
+s[0]=100
+s[1]=25
+s[2]=s[0] + s[1]
+s[3]=3
+s[4]=s[2] * s[3]
+s[5]=15
+s[6]=s[4] + s[5]
+goto 12
+print "This shouldn't be printed"
+goto 15
+print "Pass"
+goto 15
+if s[6]==100 goto 8
+if s[6]==390 goto 10
+goto 15

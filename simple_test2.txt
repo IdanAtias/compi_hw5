@@ -1,0 +1,2 @@
+C  myTempVar = 0 K ;
+print myTempVar;

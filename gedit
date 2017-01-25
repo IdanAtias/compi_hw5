@@ -1,0 +1,330 @@
+hw5.ypp: warning: 3 shift/reduce conflicts [-Wconflicts-sr]
+hw5.ypp: In function ‘int yyparse()’:
+hw5.ypp:76:22: error: ‘struct STYPE’ has no member named ‘nextList’
+       bp($1.nextList, next());
+                      ^
+hw5.ypp:82:22: error: ‘struct STYPE’ has no member named ‘nextList’
+       bp($1.nextList, next());
+                      ^
+hw5.ypp:91:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>();
+              ^
+hw5.ypp:107:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>();
+              ^
+hw5.ypp:127:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:128:48: error: ‘findVarOffset’ was not declared in this scope
+      os << "s[" << findVarOffset($3.id) << "]" << "=" << $5.place;
+                                                ^
+hw5.ypp:130:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>();
+              ^
+hw5.ypp:146:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:147:48: error: ‘findVarOffset’ was not declared in this scope
+      os << "s[" << findVarOffset($2.id) << "]" << "=" << $4.place;
+                                                ^
+hw5.ypp:149:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>();
+              ^
+hw5.ypp:154:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:157:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>(); 
+              ^
+hw5.ypp:172:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:173:54: error: ‘findVarOffset’ was not declared in this scope
+hw5.ypp:175:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>(); 
+              ^
+hw5.ypp:189:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:190:54: error: ‘findVarOffset’ was not declared in this scope
+hw5.ypp:192:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = list<int>(); 
+              ^
+hw5.ypp:198:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge($3.falseList, $7.nextList);
+              ^
+hw5.ypp:198:43: error: ‘struct STYPE’ has no member named ‘falseList’
+      $$.nextList = merge($3.falseList, $7.nextList);
+                                           ^
+hw5.ypp:198:66: error: ‘struct STYPE’ has no member named ‘nextList’
+hw5.ypp:205:22: error: ‘struct STYPE’ has no member named ‘falseList’
+      bp($3.falseList, $12.quad);
+                      ^
+hw5.ypp:206:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge(merge($7.nextList, $13.nextList), $11.nextlist);
+              ^
+hw5.ypp:206:49: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge(merge($7.nextList, $13.nextList), $11.nextlist);
+                                                 ^
+hw5.ypp:206:71: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge(merge($7.nextList, $13.nextList), $11.nextlist);
+                                                                       ^
+hw5.ypp:226:37: error: ‘whileNextlist’ was not declared in this scope
+      list<int>& topWhileNextlists = whileNextlist.top();
+                                     ^
+hw5.ypp:227:67: error: expected ‘)’ before ‘;’ token
+      topWhileNextlists = merge(topWhileNextlists, makelist(next());
+                                                                   ^
+hw5.ypp:234:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:241:49: error: ‘findVarOffset’ was not declared in this scope
+       os << "s[" << findVarOffset($3.id) << "] = 2";
+                                                 ^
+hw5.ypp:248:57: error: ‘std::vector<SymTable>::reverse_iterator {aka class std::reverse_iterator<__gnu_cxx::__normal_iterator<SymTable*, std::vector<SymTable> > >}’ has no member named ‘begin’
+       for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+                                                         ^
+hw5.ypp:248:80: error: ‘std::vector<SymTable>::reverse_iterator {aka class std::reverse_iterator<__gnu_cxx::__normal_iterator<SymTable*, std::vector<SymTable> > >}’ has no member named ‘end’
+       for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+                                                                                ^
+hw5.ypp:255:19: error: passing ‘const string {aka const std::__cxx11::basic_string<char>}’ as ‘this’ argument discards qualifiers [-fpermissive]
+          line->id = true;
+                   ^
+In file included from /usr/include/c++/5/string:52:0,
+                 from hw5.hpp:4,
+                 from hw5.ypp:2:
+/usr/include/c++/5/bits/basic_string.h:569:7: note:   in call to ‘std::__cxx11::basic_string<_CharT, _Traits, _Alloc>& std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::operator=(_CharT) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’
+       operator=(_CharT __c)
+       ^
+hw5.ypp:262:57: error: ‘std::vector<SymTable>::reverse_iterator {aka class std::reverse_iterator<__gnu_cxx::__normal_iterator<SymTable*, std::vector<SymTable> > >}’ has no member named ‘begin’
+       for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+                                                         ^
+hw5.ypp:262:80: error: ‘std::vector<SymTable>::reverse_iterator {aka class std::reverse_iterator<__gnu_cxx::__normal_iterator<SymTable*, std::vector<SymTable> > >}’ has no member named ‘end’
+       for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+                                                                                ^
+hw5.ypp:265:63: error: ‘findVarOffset’ was not declared in this scope
+hw5.ypp:299:46: error: conversion from ‘void’ to non-scalar type ‘std::__cxx11::string {aka std::__cxx11::basic_string<char>}’ requested
+hw5.ypp:300:46: error: conversion from ‘void’ to non-scalar type ‘std::__cxx11::string {aka std::__cxx11::basic_string<char>}’ requested
+hw5.ypp:303:12: error: ‘convertedFromType’ was not declared in this scope
+        if (convertedFromType != convertedToType){
+            ^
+hw5.ypp:303:33: error: ‘convertedToType’ was not declared in this scope
+        if (convertedFromType != convertedToType){
+                                 ^
+hw5.ypp:307:22: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+        ostringstream os;
+                      ^
+hw5.ypp:314:44: error: void value not ignored as it ought to be
+hw5.ypp:315:22: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+        ostringstream os;
+                      ^
+hw5.ypp:319:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge($7.nextList, makelist(next()));
+              ^
+hw5.ypp:319:43: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = merge($7.nextList, makelist(next()));
+                                           ^
+hw5.ypp:331:13: error: ‘struct STYPE’ has no member named ‘nextList’
+     $$.nextList = merge($2.nextList, $1.nextList);
+             ^
+hw5.ypp:331:41: error: ‘struct STYPE’ has no member named ‘nextList’
+     $$.nextList = merge($2.nextList, $1.nextList);
+                                         ^
+hw5.ypp:331:63: error: ‘struct STYPE’ has no member named ‘nextList’
+hw5.ypp:341:13: error: ‘struct STYPE’ has no member named ‘nextList’
+     $$.nextList = $1.nextlist();
+             ^
+hw5.ypp:341:44: error: no match for call to ‘(std::__cxx11::list<int>) ()’
+hw5.ypp:350:14: error: ‘struct STYPE’ has no member named ‘nextList’
+      $$.nextList = $7.nextList;
+              ^
+hw5.ypp:350:37: error: ‘struct STYPE’ has no member named ‘nextList’
+hw5.ypp:353:24: error: expected ‘;’ before ‘}’ token
+ OP    : PLUS  { $$.id = "+" }
+                        ^
+hw5.ypp:354:24: error: expected ‘;’ before ‘}’ token
+     | MINUS { $$.id = "-" }
+                        ^
+hw5.ypp:355:24: error: expected ‘;’ before ‘}’ token
+     | MULT  { $$.id = "*" }
+                        ^
+hw5.ypp:356:24: error: expected ‘;’ before ‘}’ token
+     | DIV  { $$.id = "/" }
+                        ^
+hw5.ypp:435:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:442:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:456:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:463:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:490:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:500:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:507:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:513:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:530:48: error: ‘findVarOffset’ was not declared in this scope
+hw5.ypp:531:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:556:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:570:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:579:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:588:20: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+      ostringstream os;
+                    ^
+hw5.ypp:602:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:629:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:645:22: error: ‘struct STYPE’ has no member named ‘falseList’
+       bp($1.falseList, $3.quad);
+                      ^
+hw5.ypp:646:15: error: ‘struct STYPE’ has no member named ‘trueList’
+       $$.trueList = merge($1.trueList, $4.trueList);
+               ^
+hw5.ypp:646:44: error: ‘struct STYPE’ has no member named ‘trueList’
+       $$.trueList = merge($1.trueList, $4.trueList);
+                                            ^
+hw5.ypp:646:65: error: ‘struct STYPE’ has no member named ‘trueList’
+hw5.ypp:647:15: error: ‘struct STYPE’ has no member named ‘falseList’
+       $$.falseList = $4.falseList;
+               ^
+hw5.ypp:647:38: error: ‘struct STYPE’ has no member named ‘falseList’
+hw5.ypp:660:50: error: ‘createNewSymbol’ was not declared in this scope
+hw5.ypp:661:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:678:22: error: ‘struct STYPE’ has no member named ‘trueList’
+       bp($1.trueList, $3.quad);
+                      ^
+hw5.ypp:679:15: error: ‘struct STYPE’ has no member named ‘falseList’
+       $$.falseList = merge($1.falseList, $4.falseList);
+               ^
+hw5.ypp:679:45: error: ‘struct STYPE’ has no member named ‘falseList’
+       $$.falseList = merge($1.falseList, $4.falseList);
+                                             ^
+hw5.ypp:679:67: error: ‘struct STYPE’ has no member named ‘falseList’
+hw5.ypp:680:15: error: ‘struct STYPE’ has no member named ‘trueList’
+       $$.trueList = $4.trueList;
+               ^
+hw5.ypp:680:37: error: ‘struct STYPE’ has no member named ‘trueList’
+hw5.ypp:695:21: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+       ostringstream os;
+                     ^
+hw5.ypp:697:42: error: expected ‘)’ before ‘{’ token
+hw5.ypp:732:6: error: expected primary-expression before ‘}’ token
+      } else {
+      ^
+hw5.ypp: In function ‘std::__cxx11::string newTemp()’:
+hw5.ypp:814:16: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+  ostringstream os;
+                ^
+hw5.ypp: In function ‘std::__cxx11::string genCelsiusToKelvinCode(std::__cxx11::string)’:
+hw5.ypp:881:16: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+  ostringstream os;
+                ^
+hw5.ypp: In function ‘std::__cxx11::string genCelsiusToFahrenheitCode(std::__cxx11::string)’:
+hw5.ypp:893:16: error: aggregate ‘std::ostringstream os1’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                ^
+hw5.ypp:893:21: error: aggregate ‘std::ostringstream os2’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                     ^
+hw5.ypp:893:26: error: aggregate ‘std::ostringstream os3’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                          ^
+hw5.ypp: In function ‘std::__cxx11::string genKelvinToCelsiusCode(std::__cxx11::string)’:
+hw5.ypp:912:16: error: aggregate ‘std::ostringstream os’ has incomplete type and cannot be defined
+  ostringstream os;
+                ^
+hw5.ypp: In function ‘std::__cxx11::string genFahrenheitToCelsiusCode(std::__cxx11::string)’:
+hw5.ypp:928:16: error: aggregate ‘std::ostringstream os1’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                ^
+hw5.ypp:928:21: error: aggregate ‘std::ostringstream os2’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                     ^
+hw5.ypp:928:26: error: aggregate ‘std::ostringstream os3’ has incomplete type and cannot be defined
+  ostringstream os1, os2, os3;
+                          ^
+hw5.ypp: In function ‘std::__cxx11::string genConversionCode(STYPE, std::__cxx11::string)’:
+hw5.ypp:960:18: error: switch quantity not an integer
+   switch (st.type){
+                  ^
+hw5.ypp:961:28: error: a call to a constructor cannot appear in a constant-expression
+    case string("FAHRENHEIT")  : return genFahrenheitToCelsiusCode(st.place);
+                            ^
+hw5.ypp:962:24: error: a call to a constructor cannot appear in a constant-expression
+    case string("KELVIN")   : return genKelvinToCelsiusCode(st.place);
+                        ^
+hw5.ypp:965:19: error: switch quantity not an integer
+    switch (st.type){
+                   ^
+hw5.ypp:966:25: error: a call to a constructor cannot appear in a constant-expression
+    case string("CELSIUS")   : return genCelsiusToFahrenheitCode(st.place);
+                         ^
+hw5.ypp:967:24: error: a call to a constructor cannot appear in a constant-expression
+    case string("KELVIN")   : return genKelvinToFahrenheitCode(st.place);
+                        ^
+hw5.ypp:970:18: error: switch quantity not an integer
+   switch (st.type){
+                  ^
+hw5.ypp:971:25: error: a call to a constructor cannot appear in a constant-expression
+    case string("CELSIUS")   : return genCelsiusToKelvinCode(st.place);
+                         ^
+hw5.ypp:972:28: error: a call to a constructor cannot appear in a constant-expression
+    case string("FAHRENHEIT")  : return genFahrenheitToKelvinCode(st.place);
+                            ^
+hw5.ypp: In function ‘int getIdOffset(const string&)’:
+hw5.ypp:985:19: error: expected primary-expression before ‘;’ token
+  for(int i=0; i < ; ++i){
+                   ^
+hw5.ypp:986:10: error: ‘Symbol’ was not declared in this scope
+   vector<Symbol>::iterator symbol = find(symbols.begin(), symbols.end(), Symbol(id, 0, 0, currentScope-i));
+          ^
+hw5.ypp:986:16: error: template argument 1 is invalid
+   vector<Symbol>::iterator symbol = find(symbols.begin(), symbols.end(), Symbol(id, 0, 0, currentScope-i));
+                ^
+hw5.ypp:986:16: error: template argument 2 is invalid
+hw5.ypp:986:28: error: expected initializer before ‘symbol’
+   vector<Symbol>::iterator symbol = find(symbols.begin(), symbols.end(), Symbol(id, 0, 0, currentScope-i));
+                            ^
+hw5.ypp:987:6: error: ‘symbol’ was not declared in this scope
+   if(symbol != symbols.end()){
+      ^
+hw5.ypp:987:16: error: ‘symbols’ was not declared in this scope
+   if(symbol != symbols.end()){
+                ^
+symTable.cpp:5:6: error: prototype for ‘void SymTable::insertVar(std::__cxx11::string, std::__cxx11::string, int, bool)’ does not match any in class ‘SymTable’
+ void SymTable::insertVar(string id, string type, int offset, bool isAssigned) {
+      ^
+In file included from symTable.cpp:2:0:
+symTable.hpp:20:8: error: candidate is: void SymTable::insertVar(std::__cxx11::string, std::__cxx11::string, int, int)
+   void insertVar(string id, string type, int offset, int isAssigned);
+        ^
+symTable.cpp: In member function ‘void SymTable::setIsVarAssigned(std::__cxx11::string, bool)’:
+symTable.cpp:60:19: error: assignment of member ‘TableLine::isAssigned’ in read-only object
+    it->isAssigned = val;
+                   ^
+make: *** [all] Error 1

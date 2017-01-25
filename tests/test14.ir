@@ -1,0 +1,14 @@
+s[0]=273
+goto 8
+print "This shouldn't be printed #1"
+goto 14
+print "Pass"
+goto 14
+print "Your switch statement doesn't convert types correctly!"
+goto 14
+if s[0]==50 goto 2
+s[1]=0
+s[2]=s[1]+273
+if s[0]==s[2] goto 4
+if s[0]==273 goto 6
+goto 14

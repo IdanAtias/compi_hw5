@@ -1,0 +1,5 @@
+s[0]=3
+s[1]=2
+if s[0] > s[1] goto 4
+goto 5
+print "Good"

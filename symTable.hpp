@@ -15,9 +15,9 @@ struct TableLine {
 };
 
 class SymTable {
-	vector<TableLine> table;
 public:
-		void insertVar(string id, string type, int offset, int isAssigned);
+		vector<TableLine> table;
+		void insertVar(string id, string type, int offset, bool isAssigned);
 		bool isVarDefined(string id) const;
 		void printTable() const;  
 		string getVarType(string id) const;
