@@ -101,7 +101,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 					offsetStack.push(newOffset);		
 					$$.nextlist = list<int>();
 				}
-			| StartScopeMarkerIfCond Type ID ASSIGN setIsAssignmentStmt Exp SC 
+			| StartScopeMarkerIfCond Type ID ASSIGN setIsAssignment Exp SC
 				{
 					//~ cout << "Type ID ASSIGN Exp SC" << endl;
 					//~ cout << "cond: "<<condScopeFlag << endl;
@@ -122,19 +122,19 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 					
 					ostringstream os;
 					if (isTemperture($2.type)){
-						$5.place = genConversionCode($6, $2.type);
+						$6.place = genConversionCode($6, $2.type);
 					}
 					os << "s[" << findVarOffset($3.id) << "]" << "=" << $6.place;
 					emit(os.str());
 					$$.nextlist = list<int>();
 					isAssignmentStmt = 0;
 				}
-			| setCondFlagOff setIsAssignmentStmt ID ASSIGN Exp SC
+			| setCondFlagOff ID ASSIGN setIsAssignment Exp SC
 				{
 					//cout << "ID ASSIGN Exp SC" << endl;
-					string idType = findVarType($3.id);
+					string idType = findVarType($2.id);
 					if (idType == string("")) {
-						errorUndef(yylineno, $3.id.c_str());
+						errorUndef(yylineno, $2.id.c_str());
 						exit(1);
 					}
 					
@@ -142,12 +142,12 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
-					findAndSetVarIsAssigned($3.id, true);
+					findAndSetVarIsAssigned($2.id, true);
 					ostringstream os;
-					if (isTemperture($3.type)){
-						$5.place = genConversionCode($5, $3.type);
+					if (isTemperture($2.type)){
+						$5.place = genConversionCode($5, $2.type);
 					}
-					os << "s[" << findVarOffset($3.id) << "]" << "=" << $5.place;
+					os << "s[" << findVarOffset($2.id) << "]" << "=" << $5.place;
 					emit(os.str());
 					$$.nextlist = list<int>();
 					isAssignmentStmt = 0;
@@ -808,10 +808,10 @@ N: {
 	emit("goto "); 
    }
    
-setIsAssignmentStmt : 
-					{
-						isAssignmentStmt = 1;
-					}
+setIsAssignment :
+			{
+				isAssignmentStmt = 1;
+			}
 
 
 %%
