@@ -63,6 +63,9 @@ K			{
 				yylval.type = "KELVIN";
 				return KELVIN;	
 			};
+foreach		{
+				return FOREACH;
+			}
 int			{
 				yylval.type = "INT";
 				return INT;	

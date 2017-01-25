@@ -21,6 +21,8 @@
 	string findVarType(string id);
 	void printStype(YYSTYPE yst, string msg);
 	bool isVarDefined(string id);
+	void findAndSetVarIsAssigned(string id, bool val);
+	bool isVarAssigned(string id);
 	string newTemp();
 
 	//gen temp conversions codes
@@ -37,6 +39,7 @@
 	
 	vector<SymTable> tablesStack;
 	stack<int> offsetStack;
+	stack<list<int>> whileNextlists;
 
 	bool condScopeFlag = false;
 	int whileCounter = 0;
@@ -54,7 +57,7 @@
 
 
 
-%token LP RP LC RC SC CELSIUS FAHRENHEIT KELVIN INT PRINT INPUT ID STRING TRUE FALSE BOOL IF ELSE WHILE BREAK NUM SWITCH CASE COLON
+%token LP RP LC RC SC CELSIUS FAHRENHEIT KELVIN INT PRINT INPUT ID STRING TRUE FALSE BOOL IF ELSE WHILE BREAK NUM SWITCH CASE COLON FOREACH
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -100,7 +103,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorDef(yylineno, $3.id.c_str());
 						exit(1);
 					}
-					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top());
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top(), false /*isAssigned*/);
 					int newOffset = offsetStack.top() + OFFSET_SIZE;
 					offsetStack.pop();
 					offsetStack.push(newOffset);		
@@ -119,7 +122,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
-					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top());
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top(), true /*isAssigned*/);
 					int newOffset = offsetStack.top() + OFFSET_SIZE;
 					offsetStack.pop();
 					offsetStack.push(newOffset);
@@ -142,7 +145,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorMismatch(yylineno);
 						exit(1);
 					}
-					
+					findAndSetVarIsAssigned($2.id, true);
 					ostringstream os;
 					os << "s[" << findVarOffset($2.id) << "]" << "=" << $4.place;
 					emit(os.str());
@@ -206,11 +209,15 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 					bp($3.falseList, $12.quad);
 					$$.nextList = merge(merge($7.nextList, $13.nextList), $11.nextlist);
 				}
-			| WHILE LP M ForceBoolExp SetCondFlagOn RP WhileMarker M stmt EndScopeMarkerIfCond
+			| WHILE LP M ForceBoolExp SetCondFlagOn RP WhileMarker M stmt N EndScopeMarkerIfCond
 				{
 					//cout << "WHILE LP Exp RP WhileMarker stmt" << endl;
 					whileCounter--;
-					bp($4.truelist, 
+					bp($4.truelist, $8.quad); //pointing "true" if to stmt
+					bp($10.nextlist, $3.quad); //pointing the goto after the stmt back to the "if"
+					bp($9.nextlist, $3.quad); //pointing the "next" of the stmt back to the "if"
+					$$.nextlist = merge($4.falselist, whileNextlists.top()); //merging next list of while and false list of if
+					whileNextlists.pop(); //update top of whileNextlist
 				}
 			| setCondFlagOff BREAK SC
 				{
@@ -220,23 +227,137 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorUnexpectedBreak(yylineno);
 						exit(1);
 					}
+					list<int>& topWhileNextlists = whileNextlist.top();
+					topWhileNextlists = merge(topWhileNextlists, makelist(next());
+					emit("goto ");
+					$$.nextlist = list<int>();
 				}
-			| SWITCH LP ForceTempExp RP LC CasesList RC
+				
+			| FOREACH LP ForceIntId TempType RP OP Exp
+				{
+					ostringstream os;
+					if (!isVarDefined($3.id)) {
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (!isVarAssigned($3.id)) {
+						findAndSetVarIsAssigned($3.id, true);
+						os << "s[" << findVarOffset($3.id) << "] = 2";
+						emit(os.str());
+						os.str("");
+					}
+					//get last id and init un-assigned id's:
+					string lastId;
+					for (vector<SymTable>::reverse_iterator table = tablesStack.rbegin(); table != tablesStack.rend(); ++table) {
+						for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+							if (line->type == $4.type){
+								lastId = line->id;
+								if (!line->isAssigned){
+									os << "s[" << line->offset << "]=0";
+									emit(os.str());
+									os.str("");
+									line->id = true;
+								}
+							}
+						}
+					}
+					
+					for (vector<SymTable>::reverse_iterator table = tablesStack.rbegin(); table != tablesStack.rend(); ++table) {
+						for (vector<TableLine>::const_iterator line=table.begin(); line != table.end(); line++){
+							if (line->type == $4.type){
+								string counter = newTemp();
+								os << counter << "=" << $3.place; //TODO: check id has place.
+								emit(os.str());
+								os.str("");
+								os << "if " << counter << ">0 goto "<< next()+2;
+								emit(os.str());
+								os.str("");
+								if (line->id == lastId){
+									$$.nextlist = makelist(next());
+									emit("goto ");
+								} else {
+									os << "goto " << next()+3;
+									emit(os.str());
+									os.str("");
+								}
+								os << "s[" << line->offset << "]= s[" << line->offset << "]"  << $6.id << $7.place;
+								emit(os.str());
+								os.str("");
+								os << counter << "=" << counter << "-1";
+								emit(os.str());
+								os.str("");
+							}
+						}
+					}
+				}
+			
+			
+			
+			
+			
+			| SWITCH LP ForceTempExp N RP LC CasesList RC
 				{
 					//cout << "SWITCH LP Exp RP LC StartScopeMarker CasesList EndScopeMarker RC" << endl;
+					bp($4.nextlist, next()); //preparing the "jump" for the evaluation of the exp.
+					while (!$7.valueList.empty()){
+						 string val = $7.valueList.pop();
+						 string type = $7.typeList.pop();
+						 string convertFromType = type;
+						 string convertToType = $3.type;
+						 if (convertedFromType != convertedToType){
+							YYSTYPE convertedVar;
+							convertedVar.type = convertedFromType;
+							string valPlace = newTemp();
+							ostringstream os;
+							os << valPlace << "=" << val;
+							emit(os.str());
+							convertedVar.place = valPlace;
+							string convertedPlace = genConversionCode(convertedVar, convertedToType);
+							$3.place = convertedPlace;
+						 }
+						 int quad = $7.quadList.pop();
+						 ostringstream os;
+						 os << "if " << $3.place << "==" << val << " goto " << quad;
+						 emit(os.str());
+					}
+					$$.nextList = merge($7.nextList, makelist(next()));
+					emit("goto ");
 				}
 		
 CasesList : CaseStat CasesList { 
 				//cout << "CaseStat CasesList " << endl;
+				$$.quadList = $2.quadList;
+				$$.quadList.push($1.quad);
+				$$.valueList = $2.valueList;
+				$$.valueList.push($1.id);
+				$$.typeList = $2.typeList;
+				$$.typeList.push($1.type);
+				$$.nextList = merge($2.nextList, $1.nextList);
 				}
 			| CaseStat { 
 				//cout << "CaseStat " << endl;
+				$$.quadList = stack<int>();
+				$$.quadList.push($1.quad);
+				$$.valueList = stack<string>();
+				$$.valueList.push($1.id); // id is the "num" in : case num
+				$$.typeList = stack<string>();
+				$$.typeList.push($1.type);
+				$$.nextList = $1.nextlist();
 				}
 
-CaseStat  : CASE NUM TempType COLON SetCondFlagOn stmt BREAK SC EndScopeMarkerIfCond
+CaseStat  : CASE NUM TempType COLON SetCondFlagOn M stmt BREAK SC EndScopeMarkerIfCond
 				{ 
 					//cout << "CASE NUM TempType COLON StartScopeMarker stmt BREAK SC EndScopeMarker " << endl;
+					$$.quad = $6.quad;
+					$$.type = $3.type;
+					$$.id = $2.id;
+					$$.nextList = $7.nextList;
 				}
+				
+OP				: PLUS
+				| MINUS
+				| MUL
+				| DIV
 
 TempType  : CELSIUS
 				{
@@ -277,7 +398,6 @@ Type	  : TempType
 					$$.type = $1.type;
 					//~ $$.val = $1.val;
 				}
-				
 ForceTempExp	: Exp
 					{
 						if (!isTemperture($1.type)) {
@@ -296,6 +416,15 @@ ForceBoolExp	: 	Exp
 						//~ condScopeFlag = true;
 						$$ = $1;
 					}
+ForceIntId		: 	ID
+					{
+						if ($1.type != string("INT")) {
+							errorMismatch(yylineno);
+							exit(1);
+						}
+						$$ = $1;
+					}
+	
 Exp		  : LP Exp RP 
 				{
 					//cout << "LP Exp RP" << endl;
@@ -634,6 +763,7 @@ FinishMarker : 	{
 
 WhileMarker	 :	{
 					//cout << "WhileMarker" << endl;
+					whileNextlists.push(list<int>());
 					whileCounter++;
 				}
 			
@@ -719,6 +849,23 @@ int findVarOffset(string id){
 		}
 	}
 	return -1;
+}
+
+void findAndSetVarIsAssigned(string id, bool val){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			iter->setIsVarAssigned(id, val);
+		}
+	}
+}
+
+bool isVarAssigned(string id){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return iter->isVarAssigned(id);
+		}
+	}
+	return false;
 }
 
 bool isVarDefined(string id){
@@ -854,6 +1001,7 @@ int main(int argc, char* argv[]) {
 	}
 	yyin = fopen(argv[1], "r");
 	int parse_res = yyparse();
+	printBuffer();
 	if (yyin != NULL){
 		fclose(yyin);
 	}
