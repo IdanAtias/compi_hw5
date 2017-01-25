@@ -1,14 +1,17 @@
 s[0]=200
+st type KELVIN
+type KELVIN
+*******in
 s[1]=s[0]
 s[2]=s[1]
-goto 10
+goto 13
 print "This shouldn't be printed #1"
-goto 14
+goto 17
 print "Pass"
-goto 14
+goto 17
 print "This shouldn't be printed #2"
-goto 14
-if s[2]==100 goto 4
-if s[2]==200 goto 6
-if s[2]==300 goto 8
-goto 14
+goto 17
+if s[2]==100 goto 7
+if s[2]==200 goto 9
+if s[2]==300 goto 11
+goto 17

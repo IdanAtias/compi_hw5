@@ -1,20 +1,26 @@
-s[0]=1
-s[1]=0
-if s[0] < s[1] goto 4
-goto 6
+goto 3
 print "Shouldn't be printed #1"
 goto 0
-s[2]=100
-s[3]=s[2]
-s[4]=200
-s[7]=s[4]-32
-s[8]=s[7]*5
-s[6]=s[8]/9
-s[5]=s[6]
-s[9]=s[3]
-s[10]=s[5]
-if s[9] == s[10] goto 17
-goto 19
+s[0]=100
+st type CELSIUS
+type CELSIUS
+*******in
+s[1]=s[0]
+s[2]=200
+st type FAHRENHEIT
+type CELSIUS
+*******out
+s[5]=s[2]-32
+s[6]=s[5]*5
+s[4]=s[6]/9
+s[3]=s[4]
+s[7]=s[1]
+s[8]=s[3]
+st type CELSIUS
+type CELSIUS
+*******in
+if s[7] == s[8] goto 23
+goto 25
 print "Shouldn't be printed #2"
-goto 13
+goto 16
 print "Only this line should be printed"

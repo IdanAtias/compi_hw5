@@ -1,23 +1,32 @@
 s[0]=212
+st type FAHRENHEIT
+type FAHRENHEIT
+*******in
 s[1]=s[0]
 s[2]=s[1]
-goto 10
+goto 13
 print "This shouldn't be printed"
-goto 23
+goto 32
 print "Pass"
-goto 23
+goto 32
 print "Your switch statement doesn't convert temperatures correctly, or you need to reverse the order"
-goto 23
+goto 32
 s[3]=1000
+st type KELVIN
+type FAHRENHEIT
+*******out
 s[4]=s[3]-273
 s[6]=s[4]*9
 s[7]=s[6]/5
 s[5]=s[7]+32
-if s[2]==s[5] goto 4
+if s[2]==s[5] goto 7
 s[8]=100
+st type CELSIUS
+type FAHRENHEIT
+*******out
 s[10]=s[8]*9
 s[11]=s[10]/5
 s[9]=s[11]+32
-if s[2]==s[9] goto 6
-if s[2]==212 goto 8
-goto 23
+if s[2]==s[9] goto 9
+if s[2]==212 goto 11
+goto 32

@@ -1,41 +1,67 @@
 s[0]=100
+st type CELSIUS
+type CELSIUS
+*******in
 s[1]=s[0]
 s[2]=100
+st type FAHRENHEIT
+type FAHRENHEIT
+*******in
 s[3]=s[2]
 s[4]=100
+st type CELSIUS
+type KELVIN
+*******out
 s[6]=s[4]+273
 s[5]=s[6]
 s[7]=s[1]
 s[8]=s[5]
+st type KELVIN
+type CELSIUS
+*******out
 s[9]=s[8]-273
-if s[7] == s[9] goto 12
-goto 40
+if s[7] == s[9] goto 24
+goto 66
 print "In first if - Good"
 s[10]=s[5]
 s[11]=s[1]
+st type CELSIUS
+type KELVIN
+*******out
 s[12]=s[11]+273
-if s[10] == s[12] goto 18
-goto 40
+if s[10] == s[12] goto 33
+goto 66
 print "In second if - Good"
 s[13]=5
 s[14]=s[13]
 s[15]=s[14]
 s[16]=0
-if s[15] > s[16] goto 25
-goto 40
+if s[15] > s[16] goto 40
+goto 66
 s[17]=s[3]
 s[18]=10
-s[19]=s[17] + s[18]
+first FAHRENHEIT
+sec FAHRENHEIT
+st type FAHRENHEIT
+type FAHRENHEIT
+*******in
+s[19]=s[17]+s[18]
+st type FAHRENHEIT
+type FAHRENHEIT
+*******in
 s[3]=s[19]
 s[20]=s[14]
 s[21]=1
-s[22]=s[20] - s[21]
-s[14]=
+s[22]=s[20]-s[21]
+s[14]=s[22]
 s[23]=s[1]
 s[24]=s[1]
-if s[23] == s[24] goto 37
-goto 39
-goto 39
-goto 33
-goto 21
+st type CELSIUS
+type CELSIUS
+*******in
+if s[23] == s[24] goto 63
+goto 65
+goto 65
+goto 56
+goto 36
 print s[3]

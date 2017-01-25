@@ -1,5 +1,8 @@
-s[0]=1
-s[1]=100
-s[2]=s[1]
+goto 1
+s[0]=100
+st type CELSIUS
+type CELSIUS
+*******in
+s[1]=s[0]
 goto 0
 print "This shouldn't be printed"

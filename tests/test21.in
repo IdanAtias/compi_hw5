@@ -1,5 +1,5 @@
 // Dead while statements
-while(1<0) {
+while(false) {
   print "Shouldn't be printed #1";
 }
 

@@ -1,1 +1,54 @@
-line 9: type mismatch
+s[0]=100
+s[1]=s[0]
+s[2]=100
+st type KELVIN
+type KELVIN
+*******in
+s[3]=s[2]
+s[4]=100
+st type CELSIUS
+type CELSIUS
+*******in
+s[5]=s[4]
+s[6]=s[1]
+s[7]=0
+if s[6] > s[7] goto 16
+goto 52
+goto 31
+s[8]=1
+s[9]=s[1]
+if s[9]>0 goto 21
+goto 24
+s[2]= s[2]+s[8]
+s[9]=s[9]-1
+goto 19
+s[10]=s[1]
+if s[10]>0 goto 27
+goto 30
+s[3]= s[3]+s[8]
+s[10]=s[10]-1
+goto 25
+goto 16
+s[8]=1
+s[9]=s[1]
+if s[9]>0 goto 35
+goto 38
+s[4]= s[4]+s[8]
+s[9]=s[9]-1
+goto 33
+s[10]=s[1]
+if s[10]>0 goto 41
+goto 44
+s[5]= s[5]+s[8]
+s[10]=s[10]-1
+goto 39
+s[11]=s[1]
+if s[11]>0 goto 47
+goto 50
+s[6]= s[6]+s[8]
+s[11]=s[11]-1
+goto 45
+goto 52
+goto 12
+print s[3]
+print s[5]

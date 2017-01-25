@@ -1,18 +1,40 @@
 s[0]=300
+st type KELVIN
+type KELVIN
+*******in
 s[1]=s[0]
 s[2]=200
+st type KELVIN
+type KELVIN
+*******in
 s[3]=s[2]
 s[4]=200
+st type FAHRENHEIT
+type FAHRENHEIT
+*******in
 s[5]=s[4]
 s[6]=s[1]
 s[7]=s[3]
-s[8]=s[6] + s[7]
+first KELVIN
+sec KELVIN
+st type KELVIN
+type KELVIN
+*******in
+s[8]=s[6]+s[7]
 s[9]=s[5]
+first KELVIN
+sec FAHRENHEIT
+st type FAHRENHEIT
+type KELVIN
+*******out
 s[12]=s[9]-32
 s[13]=s[12]*5
 s[11]=s[13]/9
 s[14]=s[11]+273
-s[10]=s[8] + s[14]
+s[10]=s[8]+s[14]
+st type KELVIN
+type CELSIUS
+*******out
 s[16]=s[10]-273
 s[15]=s[16]
 print s[15]

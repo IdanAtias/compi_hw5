@@ -510,11 +510,11 @@ static const yytype_uint8 yytranslate[] =
 static const yytype_uint16 yyrline[] =
 {
        0,    73,    73,    75,    79,    83,    88,   104,   132,   155,
-     163,   181,   198,   204,   212,   222,   235,   293,   326,   336,
-     347,   356,   357,   358,   359,   361,   367,   373,   380,   386,
-     394,   400,   408,   418,   427,   432,   453,   474,   498,   525,
-     551,   564,   578,   587,   596,   624,   655,   687,   740,   744,
-     749,   754,   762,   769,   778,   785,   795,   802,   806,   812
+     163,   181,   198,   204,   212,   222,   235,   297,   330,   340,
+     351,   360,   361,   362,   363,   365,   371,   377,   384,   390,
+     398,   404,   412,   422,   436,   441,   464,   485,   509,   536,
+     562,   575,   589,   603,   617,   645,   676,   708,   763,   767,
+     772,   777,   785,   792,   801,   808,   818,   825,   829,   835
 };
 #endif
 
@@ -1467,8 +1467,8 @@ yyreduce:
 					}
 					findAndSetVarIsAssigned((yyvsp[-4]).id, true);
 					ostringstream os;
-					if (isTemperture((yyvsp[-4]).type)){
-						(yyvsp[-1]).place = genConversionCode((yyvsp[-1]), (yyvsp[-4]).type);
+					if (isTemperture(idType)){
+						(yyvsp[-1]).place = genConversionCode((yyvsp[-1]), idType);
 					}
 					os << "s[" << findVarOffset((yyvsp[-4]).id) << "]" << "=" << (yyvsp[-1]).place;
 					emit(os.str());
@@ -1629,7 +1629,7 @@ yyreduce:
 									(yyval).nextlist = makelist(next());
 									emit("goto ");
 								} else {
-									os << "goto " << next()+3;
+									os << "goto " << next()+4;
 									emit(os.str());
 									os.str("");
 								}
@@ -1639,15 +1639,19 @@ yyreduce:
 								os << counter << "=" << counter << "-1";
 								emit(os.str());
 								os.str("");
+								
+								os << "goto " << next() - 4;
+								emit(os.str());
+								os.str("");
 							}
 						}
 					}
 				}
-#line 1647 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1651 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 294 "hw5.ypp" /* yacc.c:1646  */
+#line 298 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "SWITCH LP Exp RP LC StartScopeMarker CasesList EndScopeMarker RC" << endl;
 					bp((yyvsp[-4]).nextlist, next()); //preparing the "jump" for the evaluation of the exp.
@@ -1679,11 +1683,11 @@ yyreduce:
 					(yyval).nextlist = merge((yyvsp[-1]).nextlist, makelist(next()));
 					emit("goto ");
 				}
-#line 1683 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1687 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 326 "hw5.ypp" /* yacc.c:1646  */
+#line 330 "hw5.ypp" /* yacc.c:1646  */
     { 
 				//cout << "CaseStat CasesList " << endl;
 				(yyval).quadList = (yyvsp[0]).quadList;
@@ -1694,11 +1698,11 @@ yyreduce:
 				(yyval).typeList.push((yyvsp[-1]).type);
 				(yyval).nextlist = merge((yyvsp[0]).nextlist, (yyvsp[-1]).nextlist);
 				}
-#line 1698 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1702 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 336 "hw5.ypp" /* yacc.c:1646  */
+#line 340 "hw5.ypp" /* yacc.c:1646  */
     { 
 				//cout << "CaseStat " << endl;
 				(yyval).quadList = stack<int>();
@@ -1709,11 +1713,11 @@ yyreduce:
 				(yyval).typeList.push((yyvsp[0]).type);
 				(yyval).nextlist = (yyvsp[0]).nextlist;
 				}
-#line 1713 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1717 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 348 "hw5.ypp" /* yacc.c:1646  */
+#line 352 "hw5.ypp" /* yacc.c:1646  */
     { 
 					//cout << "CASE NUM TempType COLON StartScopeMarker stmt BREAK SC EndScopeMarker " << endl;
 					(yyval).quad = (yyvsp[-5]).quad;
@@ -1721,75 +1725,75 @@ yyreduce:
 					(yyval).id = (yyvsp[-9]).id;
 					(yyval).nextlist = merge((yyvsp[-4]).nextlist, (yyvsp[-1]).nextlist);
 				}
-#line 1725 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1729 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 356 "hw5.ypp" /* yacc.c:1646  */
+#line 360 "hw5.ypp" /* yacc.c:1646  */
     { (yyval).id = "+"; }
-#line 1731 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1735 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 357 "hw5.ypp" /* yacc.c:1646  */
+#line 361 "hw5.ypp" /* yacc.c:1646  */
     { (yyval).id = "-"; }
-#line 1737 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1741 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 358 "hw5.ypp" /* yacc.c:1646  */
+#line 362 "hw5.ypp" /* yacc.c:1646  */
     { (yyval).id = "*"; }
-#line 1743 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1747 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 359 "hw5.ypp" /* yacc.c:1646  */
+#line 363 "hw5.ypp" /* yacc.c:1646  */
     { (yyval).id = "/"; }
-#line 1749 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1753 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 362 "hw5.ypp" /* yacc.c:1646  */
+#line 366 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "CELSIUS" << endl;
 					(yyval).type = (yyvsp[0]).type;
 					//~ $$.val = $1.val;
 				}
-#line 1759 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1763 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 368 "hw5.ypp" /* yacc.c:1646  */
+#line 372 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "FAHRENHEIT" << endl;
 					(yyval).type = (yyvsp[0]).type;
 					//~ $$.val = $1.val;
 				}
-#line 1769 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1773 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 374 "hw5.ypp" /* yacc.c:1646  */
+#line 378 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "KELVIN" << endl;
 					(yyval).type = (yyvsp[0]).type;
 					//~ $$.val = $1.val;
 				}
-#line 1779 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1783 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 381 "hw5.ypp" /* yacc.c:1646  */
+#line 385 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "TempType" << endl;
 					(yyval).type = (yyvsp[0]).type;
 					//~ $$.val = $1.val;
 				}
-#line 1789 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1793 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 387 "hw5.ypp" /* yacc.c:1646  */
+#line 391 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "INT" << endl;
 					(yyval).type = (yyvsp[0]).type;
@@ -1797,21 +1801,21 @@ yyreduce:
 					//~ printStype($1, "INT");
 					//~ printStype($$, "Type");
 				}
-#line 1801 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1805 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 395 "hw5.ypp" /* yacc.c:1646  */
+#line 399 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "BOOL" << endl;
 					(yyval).type = (yyvsp[0]).type;
 					//~ $$.val = $1.val;
 				}
-#line 1811 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1815 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 401 "hw5.ypp" /* yacc.c:1646  */
+#line 405 "hw5.ypp" /* yacc.c:1646  */
     {
 						if (!isTemperture((yyvsp[0]).type)) {
 							errorMismatch(yylineno);
@@ -1819,11 +1823,11 @@ yyreduce:
 						} 
 						(yyval) = (yyvsp[0]);
 					}
-#line 1823 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1827 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 409 "hw5.ypp" /* yacc.c:1646  */
+#line 413 "hw5.ypp" /* yacc.c:1646  */
     {
 						//cout << "ForceBoolExp" << endl;
 						if ((yyvsp[0]).type != string("BOOL")){
@@ -1833,82 +1837,89 @@ yyreduce:
 						//~ condScopeFlag = true;
 						(yyval) = (yyvsp[0]);
 					}
-#line 1837 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1841 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 33:
-#line 419 "hw5.ypp" /* yacc.c:1646  */
+#line 423 "hw5.ypp" /* yacc.c:1646  */
     {
-						if ((yyvsp[0]).type != string("INT")) {
+						string idType = findVarType((yyvsp[0]).id);
+						if (idType == string("")) {
+							errorUndef(yylineno, (yyvsp[0]).id.c_str());
+							exit(1);
+						} else if (idType != string("INT")){
 							errorMismatch(yylineno);
 							exit(1);
 						}
+						(yyvsp[0]).type = string("INT");
 						(yyval) = (yyvsp[0]);
 					}
-#line 1849 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1858 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 34:
-#line 428 "hw5.ypp" /* yacc.c:1646  */
+#line 437 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "LP Exp RP" << endl;
 					(yyval) = (yyvsp[-1]);
 				}
-#line 1858 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1867 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 35:
-#line 433 "hw5.ypp" /* yacc.c:1646  */
+#line 442 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp PLUS Exp" << endl;
 					if ((yyvsp[-2]).type == string("INT") && (yyvsp[0]).type == string("INT")) {
 						(yyval).type = (yyvsp[-2]).type;
 						(yyval).place = newTemp(string("INT"));
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " + " << (yyvsp[0]).place;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "+" << (yyvsp[0]).place;
 						emit(os.str());
 					} else if (isTemperture((yyvsp[-2]).type) && isTemperture((yyvsp[0]).type)) {
 						(yyval).type = (yyvsp[-2]).type;
+						emit("first " + (yyvsp[-2]).type);
+						emit("sec " + (yyvsp[0]).type);
 						(yyval).place = newTemp((yyvsp[-2]).type);
 						string convertedSecArg = genConversionCode((yyvsp[0]), (yyvsp[-2]).type);
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " + " << convertedSecArg;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "+" << convertedSecArg;
 						emit(os.str()); 
 					} else {
 						errorMismatch(yylineno);
 						exit(1);
 					}
 				}
-#line 1883 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1894 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 36:
-#line 454 "hw5.ypp" /* yacc.c:1646  */
+#line 465 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp MINUS Exp" << endl;
 					if ((yyvsp[-2]).type == string("INT") && (yyvsp[0]).type == string("INT")) {
 						(yyval).type = (yyvsp[-2]).type;
 						(yyval).place = newTemp(string("INT"));
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " - " << (yyvsp[0]).place;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "-" << (yyvsp[0]).place;
 						emit(os.str());
 					} else if (isTemperture((yyvsp[-2]).type) && isTemperture((yyvsp[0]).type)) {
 						(yyval).type = (yyvsp[-2]).type;
 						(yyval).place = newTemp((yyvsp[-2]).type);
 						string convertedSecArg = genConversionCode((yyvsp[0]), (yyvsp[-2]).type);
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " - " << convertedSecArg;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "-" << convertedSecArg;
 						emit(os.str()); 
 					} else {
 						errorMismatch(yylineno);
 						exit(1);
 					}
 				}
-#line 1908 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1919 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 37:
-#line 475 "hw5.ypp" /* yacc.c:1646  */
+#line 486 "hw5.ypp" /* yacc.c:1646  */
     {
 						//cout << "Exp MULT Exp" << endl;
 					if ((yyvsp[-2]).type == string("BOOL") || (yyvsp[0]).type == string("BOOL")) {
@@ -1929,45 +1940,45 @@ yyreduce:
 						(yyval).place = newTemp(temp.type);
 					}
 					ostringstream os;
-					os << (yyval).place << "=" << (yyvsp[-2]).place << " * " << (yyvsp[0]).place;
+					os << (yyval).place << "=" << (yyvsp[-2]).place << "*" << (yyvsp[0]).place;
 					emit(os.str());
 				}
-#line 1936 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1947 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 38:
-#line 499 "hw5.ypp" /* yacc.c:1646  */
+#line 510 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp DIV Exp" << endl;
 					if ((yyvsp[-2]).type == string("INT") && (yyvsp[0]).type == string("INT")) {
 						(yyval).type = (yyvsp[-2]).type;
 						(yyval).place = newTemp(string("INT"));
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " / " << (yyvsp[0]).place;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "/" << (yyvsp[0]).place;
 						emit(os.str());
 					} else if (isTemperture((yyvsp[-2]).type) && isTemperture((yyvsp[0]).type)) {
 						(yyval).type = string("INT");
 						(yyval).place = newTemp(string("INT"));
 						string convertedSecArg = genConversionCode((yyvsp[0]), (yyvsp[-2]).type);
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " / " << convertedSecArg;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "/" << convertedSecArg;
 						emit(os.str()); 
 					} else if(isTemperture((yyvsp[-2]).type) && (yyvsp[0]).type == string("INT")) {
 						(yyval).type = (yyvsp[-2]).type;
 						(yyval).place = newTemp((yyvsp[-2]).type);
 						ostringstream os;
-						os << (yyval).place << "=" << (yyvsp[-2]).place << " / " << (yyvsp[0]).place;
+						os << (yyval).place << "=" << (yyvsp[-2]).place << "/" << (yyvsp[0]).place;
 						emit(os.str());
 					} else {
 						errorMismatch(yylineno);
 						exit(1);
 					}
 				}
-#line 1967 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 1978 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 39:
-#line 526 "hw5.ypp" /* yacc.c:1646  */
+#line 537 "hw5.ypp" /* yacc.c:1646  */
     {	
 					//cout << "ID" << endl;
 					string varType = findVarType((yyvsp[0]).id);
@@ -1993,11 +2004,11 @@ yyreduce:
 						emit(os.str());
 					}
 				}
-#line 1997 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2008 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 40:
-#line 552 "hw5.ypp" /* yacc.c:1646  */
+#line 563 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "NUM" << endl;
 					if ((yyvsp[0]).type != string("INT")) {
@@ -2010,11 +2021,11 @@ yyreduce:
 					os << (yyval).place << "=" << (yyvsp[0]).id;
 					emit(os.str());
 				}
-#line 2014 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2025 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 41:
-#line 565 "hw5.ypp" /* yacc.c:1646  */
+#line 576 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "NUM TempType " << endl;
 					if (!(isTemperture((yyvsp[0]).type)) ||
@@ -2028,37 +2039,47 @@ yyreduce:
 					os << (yyval).place << "=" << (yyvsp[-1]).id;
 					emit(os.str());
 				}
-#line 2032 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2043 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 42:
-#line 579 "hw5.ypp" /* yacc.c:1646  */
+#line 590 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "TRUE" << endl;
-					(yyval).type = (yyvsp[0]).type;
-					(yyval).place = newTemp((yyvsp[0]).type);
-					ostringstream os;
-					os << (yyval).place << "=1";
-					emit(os.str());
+					if (isAssignmentStmt){
+						(yyval).type = (yyvsp[0]).type;
+						(yyval).place = newTemp((yyvsp[0]).type);
+						ostringstream os;
+						os << (yyval).place << "=1";
+						emit(os.str());
+					} else {
+						(yyval).truelist = makelist(next());
+						emit("goto ");
+					}
 				}
-#line 2045 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2061 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 588 "hw5.ypp" /* yacc.c:1646  */
+#line 604 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "FALSE" << endl;
 					(yyval).type = (yyvsp[0]).type;
-					(yyval).place = newTemp((yyvsp[0]).type);
-					ostringstream os;
-					os << (yyval).place << "=0";
-					emit(os.str());
+					if (isAssignmentStmt){
+						(yyval).place = newTemp((yyvsp[0]).type);
+						ostringstream os;
+						os << (yyval).place << "=0";
+						emit(os.str());
+					} else {
+						(yyval).falselist = makelist(next());
+						emit("goto ");
+					}
 				}
-#line 2058 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2079 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 597 "hw5.ypp" /* yacc.c:1646  */
+#line 618 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "NOT Exp" << endl;
 					if ((yyvsp[0]).type != string("BOOL")) {
@@ -2086,11 +2107,11 @@ yyreduce:
 					}
 					
 				}
-#line 2090 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2111 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 625 "hw5.ypp" /* yacc.c:1646  */
+#line 646 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp OR Exp" << endl;
 					if ((yyvsp[-3]).type != string("BOOL") || (yyvsp[-1]).type != string("BOOL")){
@@ -2121,11 +2142,11 @@ yyreduce:
 					}
 					(yyval).type = string("BOOL");
 				}
-#line 2125 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2146 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 656 "hw5.ypp" /* yacc.c:1646  */
+#line 677 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp AND Exp" << endl;
 					if ((yyvsp[-3]).type != string("BOOL") || (yyvsp[-1]).type != string("BOOL")){
@@ -2157,11 +2178,11 @@ yyreduce:
 					}
 					(yyval).type = string("BOOL");
 				}
-#line 2161 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2182 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 688 "hw5.ypp" /* yacc.c:1646  */
+#line 709 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "Exp REL_OP Exp" << endl;
 					if (isTemperture((yyvsp[-2]).type) && isTemperture((yyvsp[0]).type)) {
@@ -2175,14 +2196,16 @@ yyreduce:
 							ostringstream os;
 							
 							if ((yyvsp[-1]).id == string("<=")) {
-									os << (yyvsp[-2]).place << " = " << (yyvsp[-2]).place << " -1";
+									os << (yyvsp[-2]).place << "=" << (yyvsp[-2]).place << " -1";
 									emit(os.str());
+									os.str("");
 									(yyvsp[-1]).id = "<";
 							}
 							
 							if ((yyvsp[-1]).id == string(">=")) {
-								os << (yyvsp[-2]).place << " = " << (yyvsp[-2]).place << " +1";
+								os << (yyvsp[-2]).place << "=" << (yyvsp[-2]).place << " +1";
 								emit(os.str());
+								os.str("");
 								(yyvsp[-1]).id = ">";	
 							}
 							if (isAssignmentStmt) {
@@ -2213,38 +2236,38 @@ yyreduce:
 							exit(1);
 						}
 				}
-#line 2217 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2240 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 740 "hw5.ypp" /* yacc.c:1646  */
+#line 763 "hw5.ypp" /* yacc.c:1646  */
     {
 					condScopeFlag = false;
 				  }
-#line 2225 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2248 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 744 "hw5.ypp" /* yacc.c:1646  */
+#line 767 "hw5.ypp" /* yacc.c:1646  */
     {
 				//cout << "setCondFlag " << endl;
 				condScopeFlag = true;
 				}
-#line 2234 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2257 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 749 "hw5.ypp" /* yacc.c:1646  */
+#line 772 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "InitMarker" << endl;
 					tablesStack.push_back(SymTable());
 					offsetStack.push(0);
 				}
-#line 2244 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2267 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 754 "hw5.ypp" /* yacc.c:1646  */
+#line 777 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "FinishMarker" << endl;
 					//~ endScope();
@@ -2252,21 +2275,21 @@ yyreduce:
 					tablesStack.pop_back();
 					offsetStack.pop();
 				}
-#line 2256 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2279 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 762 "hw5.ypp" /* yacc.c:1646  */
+#line 785 "hw5.ypp" /* yacc.c:1646  */
     {
 					//cout << "WhileMarker" << endl;
 					whileNextlists.push(list<int>());
 					whileCounter++;
 				}
-#line 2266 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2289 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 769 "hw5.ypp" /* yacc.c:1646  */
+#line 792 "hw5.ypp" /* yacc.c:1646  */
     {
 						//cout << "EndScopeMarker" << endl;
 						condScopeFlag = false;
@@ -2275,22 +2298,22 @@ yyreduce:
 						tablesStack.pop_back();
 						offsetStack.pop();
 					}
-#line 2279 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2302 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 778 "hw5.ypp" /* yacc.c:1646  */
+#line 801 "hw5.ypp" /* yacc.c:1646  */
     {
 							//cout << "StartScopeMarker" << endl;
 							condScopeFlag = false;
 							tablesStack.push_back(SymTable());
 							offsetStack.push(offsetStack.top());
 						}
-#line 2290 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2313 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 785 "hw5.ypp" /* yacc.c:1646  */
+#line 808 "hw5.ypp" /* yacc.c:1646  */
     {
 								if (condScopeFlag){
 									condScopeFlag = false;
@@ -2300,47 +2323,47 @@ yyreduce:
 									offsetStack.pop();
 								}
 							}
-#line 2304 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2327 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 795 "hw5.ypp" /* yacc.c:1646  */
+#line 818 "hw5.ypp" /* yacc.c:1646  */
     {
 								if (condScopeFlag){
 									tablesStack.push_back(SymTable());
 									offsetStack.push(offsetStack.top());
 								}
 							}
-#line 2315 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2338 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 802 "hw5.ypp" /* yacc.c:1646  */
+#line 825 "hw5.ypp" /* yacc.c:1646  */
     {
 	 (yyval).quad = next();
    }
-#line 2323 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2346 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 806 "hw5.ypp" /* yacc.c:1646  */
+#line 829 "hw5.ypp" /* yacc.c:1646  */
     {
 	(yyval).nextlist = makelist(next());
 	emit("goto "); 
    }
-#line 2332 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2355 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 59:
-#line 812 "hw5.ypp" /* yacc.c:1646  */
+#line 835 "hw5.ypp" /* yacc.c:1646  */
     {
 				isAssignmentStmt = 1;
 			}
-#line 2340 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2363 "hw5.tab.cpp" /* yacc.c:1646  */
     break;
 
 
-#line 2344 "hw5.tab.cpp" /* yacc.c:1646  */
+#line 2367 "hw5.tab.cpp" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2568,7 +2591,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 817 "hw5.ypp" /* yacc.c:1906  */
+#line 840 "hw5.ypp" /* yacc.c:1906  */
 
 
 string newTemp(string type)
@@ -2723,9 +2746,13 @@ string genFahrenheitToKelvinCode(string fahVarToConv){
 //creating the ir-code for converting temparture
 //returning the variable name that holds the result of the conversions
 string genConversionCode(YYSTYPE st, string type){
+	emit("st type " + st.type);
+	emit("type " + type);
 	if (st.type == type){
+		emit("*******in");
 		return st.place;
 	}
+	emit("*******out");
 	int numType = convertTempStringToNum(st.type);
 	if (type == string("CELSIUS")){
 		switch (numType){

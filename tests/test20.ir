@@ -1,20 +1,37 @@
 s[0]=0
+st type CELSIUS
+type CELSIUS
+*******in
 s[1]=s[0]
 print "Water is frozen"
 s[2]=s[1]
 s[3]=200
-if s[2] < s[3] goto 7
-goto 19
+st type CELSIUS
+type CELSIUS
+*******in
+if s[2] < s[3] goto 13
+goto 36
 s[4]=s[1]
 s[5]=20
-s[6]=s[4] + s[5]
+first CELSIUS
+sec CELSIUS
+st type CELSIUS
+type CELSIUS
+*******in
+s[6]=s[4]+s[5]
+st type CELSIUS
+type CELSIUS
+*******in
 s[1]=s[6]
 print "Warming up water..."
 s[7]=s[1]
 s[8]=100
-if s[7] == s[8] goto 16
-goto 18
+st type CELSIUS
+type CELSIUS
+*******in
+if s[7] == s[8] goto 33
+goto 35
 print "Water is boiling, cannot warm up"
-goto 19
-goto 3
+goto 36
+goto 6
 print "Water boiling complete!"
