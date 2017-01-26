@@ -1,1 +1,135 @@
-line 2: type mismatch
+s[0]=3
+s[1]=7
+if s[0]<s[1] goto 5
+s[2]=0
+goto 6
+s[2]=1
+s[3]=1
+s[4]=1
+if s[3] == 1 goto 12
+if s[4] == 1 goto 12
+s[5]=0
+goto 13
+s[5]=1
+s[6]=1
+if s[5] == 1 goto 18
+if s[6] == 1 goto 18
+s[7]=0
+goto 19
+s[7]=1
+if s[2] == 0 goto 23
+if s[7] == 0 goto 23
+s[8]=1
+goto 24
+s[8]=0
+s[9]=s[8]
+s[10]=300
+s[11]=27
+s[12]=s[11]+273
+if s[10]==s[12] goto 31
+s[13]=0
+goto 32
+s[13]=1
+s[14]=s[13]
+s[15]=1
+s[16]=0
+if s[15] == 1 goto 39
+if s[16] == 1 goto 39
+s[17]=0
+goto 40
+s[17]=1
+s[18]=0
+if s[17] == 1 goto 45
+if s[18] == 1 goto 45
+s[19]=0
+goto 46
+s[19]=1
+s[20]=0
+if s[19] == 1 goto 51
+if s[20] == 1 goto 51
+s[21]=0
+goto 52
+s[21]=1
+s[22]=s[21]
+s[23]=22
+s[24]=55
+s[25]=s[23]*s[24]
+s[26]=8
+s[27]=s[25]+s[26]
+s[28]=12
+if s[27]!=s[28] goto 62
+s[29]=0
+goto 63
+s[29]=1
+s[30]=1
+if s[29] == 0 goto 68
+if s[30] == 0 goto 68
+s[31]=1
+goto 69
+s[31]=0
+s[32]=s[31]
+if s[9] == 1 goto 72
+goto 74
+print "Pass 1"
+goto 75
+print "This shouldn't be printed #1"
+if s[14] == 1 goto 77
+goto 78
+print "Pass 2"
+if s[22] == 1 goto 82
+goto 80
+print "This shouldn't be printed #2"
+goto 83
+print "Pass 3"
+if s[32] == 1 goto 85
+goto 87
+print "Pass 4"
+goto 88
+print "This shouldn't be printed #3"
+goto 89
+goto 90
+goto 91
+print "Pass 5"
+goto 94
+print "This shouldn't be printed #4"
+s[33]=16
+s[34]=15
+if s[33] > s[34] goto 107
+goto 98
+s[35]=200
+s[36]=150
+if s[35] != s[36] goto 102
+goto 109
+s[37]=16
+s[38]=16
+s[37]=s[37] +1
+if s[37] > s[38] goto 107
+goto 109
+print "You're awesome!"
+goto 110
+print "This shouldn't be printed #5"
+goto 119
+goto 112
+goto 113
+goto 119
+goto 121
+s[39]=2
+s[40]=1
+if s[39] > s[40] goto 119
+goto 121
+print "You're awesome 2!"
+goto 122
+print "This shouldn't be printed #6"
+s[41]=5
+s[42]=6
+s[43]=s[41]*s[42]
+s[44]=7
+s[45]=s[43]*s[44]
+s[46]=2
+s[47]=s[45]+s[46]
+s[48]=1000
+if s[47] > s[48] goto 132
+goto 134
+print "This shouldn't be printed #7"
+goto 135
+print "Hooray!"

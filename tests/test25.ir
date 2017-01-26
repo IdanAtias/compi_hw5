@@ -9,60 +9,42 @@ s[7]=11
 s[8]=s[6]+s[7]
 s[9]=s[8]
 s[10]=100
-st type CELSIUS
-type CELSIUS
-*******in
 s[11]=s[10]
 s[12]=200
-st type CELSIUS
-type CELSIUS
-*******in
 s[13]=s[12]
 s[14]=100
-st type FAHRENHEIT
-type FAHRENHEIT
-*******in
 s[15]=s[14]
 s[16]=200
-st type FAHRENHEIT
-type FAHRENHEIT
-*******in
 s[17]=s[16]
 s[18]=100
-st type KELVIN
-type KELVIN
-*******in
 s[19]=s[18]
 s[20]=200
-st type KELVIN
-type KELVIN
-*******in
 s[21]=s[20]
 s[22]=20
 s[23]=s[9]
-if s[23]>0 goto 44
-goto 47
-s[10]= s[10]+s[22]
+if s[23]>0 goto 26
+goto 29
+s[10]=s[10]+s[22]
 s[23]=s[23]-1
-goto 42
+goto 24
 s[24]=s[9]
-if s[24]>0 goto 50
-goto 53
-s[11]= s[11]+s[22]
+if s[24]>0 goto 32
+goto 35
+s[11]=s[11]+s[22]
 s[24]=s[24]-1
-goto 48
+goto 30
 s[25]=s[9]
-if s[25]>0 goto 56
-goto 59
-s[12]= s[12]+s[22]
+if s[25]>0 goto 38
+goto 41
+s[12]=s[12]+s[22]
 s[25]=s[25]-1
-goto 54
+goto 36
 s[26]=s[9]
-if s[26]>0 goto 62
-goto 65
-s[13]= s[13]+s[22]
+if s[26]>0 goto 44
+goto 47
+s[13]=s[13]+s[22]
 s[26]=s[26]-1
-goto 60
+goto 42
 print s[11]
 print s[13]
 print s[15]
@@ -71,29 +53,29 @@ print s[19]
 print s[21]
 s[27]=5
 s[28]=s[9]
-if s[28]>0 goto 75
-goto 78
-s[18]= s[18]-s[27]
+if s[28]>0 goto 57
+goto 60
+s[18]=s[18]-s[27]
 s[28]=s[28]-1
-goto 73
+goto 55
 s[29]=s[9]
-if s[29]>0 goto 81
-goto 84
-s[19]= s[19]-s[27]
+if s[29]>0 goto 63
+goto 66
+s[19]=s[19]-s[27]
 s[29]=s[29]-1
-goto 79
+goto 61
 s[30]=s[9]
-if s[30]>0 goto 87
-goto 90
-s[20]= s[20]-s[27]
+if s[30]>0 goto 69
+goto 72
+s[20]=s[20]-s[27]
 s[30]=s[30]-1
-goto 85
+goto 67
 s[31]=s[9]
-if s[31]>0 goto 93
-goto 96
-s[21]= s[21]-s[27]
+if s[31]>0 goto 75
+goto 78
+s[21]=s[21]-s[27]
 s[31]=s[31]-1
-goto 91
+goto 73
 print s[11]
 print s[13]
 print s[15]

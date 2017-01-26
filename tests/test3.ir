@@ -1,48 +1,36 @@
 s[0]=300
-st type KELVIN
-type KELVIN
-*******in
 s[1]=s[0]
 s[2]=100
-st type CELSIUS
-type CELSIUS
-*******in
 s[3]=s[2]
-goto 11
+goto 5
 print "Pass 1"
-goto 14
+goto 8
 print "This shouldn't be printed #1"
 s[4]=s[1]
 s[5]=s[3]
-st type CELSIUS
-type KELVIN
-*******out
 s[6]=s[5]+273
-if s[4] < s[6] goto 22
-goto 23
+if s[4] < s[6] goto 13
+goto 14
 print "Pass 2"
 s[7]=5
 s[8]=12
-if s[7] < s[8] goto 27
-goto 28
+if s[7] < s[8] goto 18
+goto 19
 print "Pass 3"
 s[9]=4
 s[10]=4
-if s[9] > s[10] goto 32
-goto 33
+if s[9] > s[10] goto 23
+goto 24
 print "This shouldn't be printed #2"
 s[11]=300
 s[12]=500
-st type KELVIN
-type KELVIN
-*******in
-if s[11] < s[12] goto 40
-goto 41
+if s[11] < s[12] goto 28
+goto 29
 print "Pass 4"
 s[13]=8
 s[14]=s[13]
 s[15]=s[14]
 s[16]=8
-if s[15] == s[16] goto 47
-goto 48
+if s[15] == s[16] goto 35
+goto 36
 print "Pass 5"

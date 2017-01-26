@@ -1,0 +1,27 @@
+s[0]=10
+s[1]=s[0]
+s[6]=10
+s[2]=0
+s[3]=0
+s[4]=0
+s[7]=s[1]
+if s[7]>0 goto 9
+goto 12
+s[2]=s[2]+s[6]
+s[7]=s[7]-1
+goto 7
+s[8]=s[1]
+if s[8]>0 goto 15
+goto 18
+s[3]=s[3]+s[6]
+s[8]=s[8]-1
+goto 13
+s[9]=s[1]
+if s[9]>0 goto 21
+goto 24
+s[4]=s[4]+s[6]
+s[9]=s[9]-1
+goto 19
+print s[2]
+print s[3]
+print s[4]

@@ -1,45 +1,36 @@
 s[0]=100
-st type KELVIN
-type KELVIN
-*******in
 s[1]=s[0]
 s[2]=200
-st type KELVIN
-type KELVIN
-*******in
 s[3]=s[2]
 s[4]=0
-st type CELSIUS
-type CELSIUS
-*******in
 s[5]=s[4]
 s[6]=8
 s[7]=s[6]
 s[8]=10
 s[9]=s[7]
-if s[9]>0 goto 21
-goto 24
-s[0]= s[0]+s[8]
+if s[9]>0 goto 12
+goto 15
+s[0]=s[0]+s[8]
 s[9]=s[9]-1
-goto 19
+goto 10
 s[10]=s[7]
-if s[10]>0 goto 27
-goto 30
-s[1]= s[1]+s[8]
+if s[10]>0 goto 18
+goto 21
+s[1]=s[1]+s[8]
 s[10]=s[10]-1
-goto 25
+goto 16
 s[11]=s[7]
-if s[11]>0 goto 33
-goto 36
-s[2]= s[2]+s[8]
+if s[11]>0 goto 24
+goto 27
+s[2]=s[2]+s[8]
 s[11]=s[11]-1
-goto 31
+goto 22
 s[12]=s[7]
-if s[12]>0 goto 39
-goto 42
-s[3]= s[3]+s[8]
+if s[12]>0 goto 30
+goto 33
+s[3]=s[3]+s[8]
 s[12]=s[12]-1
-goto 37
+goto 28
 print s[1]
 print s[3]
 print s[5]

@@ -26,7 +26,7 @@
 	bool isVarDefined(string id);
 	void findAndSetVarIsAssigned(string id, bool val);
 	int convertTempStringToNum(string type);
-	bool isVarAssigned(string id);
+	bool getIsVarAssigned(string id);
 	string newTemp(string type);
 
 	//gen temp conversions codes
@@ -223,7 +223,7 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 				{
 					//~ cout << "BREAK SC" << endl;
 					//~ cout << condScopeFlag << endl;
-					if (whileCounter <= 0 ) {
+					if (whileCounter <= 0) {
 						errorUnexpectedBreak(yylineno);
 						exit(1);
 					}
@@ -239,60 +239,59 @@ stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
 						errorUndef(yylineno, $3.id.c_str());
 						exit(1);
 					}
-					if (!isVarAssigned($3.id)) {
+					if (!getIsVarAssigned($3.id)) {
 						findAndSetVarIsAssigned($3.id, true);
-						os << "s[" << findVarOffset($3.id) << "] = 2";
+						os << "s[" << findVarOffset($3.id) << "]=2";
 						emit(os.str());
 						os.str("");
 					}
-					//get last id and init un-assigned id's:
+
+					// get tempartures Ids (of the same type as $4.type) && init un-assinged ids
 					string lastId;
+					vector<TableLine> tempartureIds = vector<TableLine>();
 					for (vector<SymTable>::reverse_iterator symTable = tablesStack.rbegin(); symTable != tablesStack.rend(); ++symTable) {
-						for (vector<TableLine>::iterator line=symTable->table.begin(); line != symTable->table.end(); line++){
+						for (vector<TableLine>::const_iterator line=symTable->table.begin(); line != symTable->table.end(); line++){
 							if (line->type == $4.type){
-								lastId = line->id;
 								if (!line->isAssigned){
 									os << "s[" << line->offset << "]=0";
 									emit(os.str());
 									os.str("");
 									symTable->setIsVarAssigned(line->id, true);
 								}
+								tempartureIds.push_back(*line);
+								lastId = line->id;
 							}
 						}
 					}
-					
-					for (vector<SymTable>::reverse_iterator symTable = tablesStack.rbegin(); symTable != tablesStack.rend(); ++symTable) {
-						for (vector<TableLine>::iterator line=symTable->table.begin(); line != symTable->table.end(); line++){
-							if (line->type == $4.type){
-								string counter = newTemp($3.type);
-								os << counter << "=s[" << findVarOffset($3.id) << "]";
-								emit(os.str());
-								os.str("");
-								os << "if " << counter << ">0 goto "<< next()+2;
-								emit(os.str());
-								os.str("");
-								if (line->id == lastId){
-									$$.nextlist = makelist(next());
-									emit("goto ");
-								} else {
-									os << "goto " << next()+4;
-									emit(os.str());
-									os.str("");
-								}
-								os << "s[" << line->offset << "]= s[" << line->offset << "]"  << $6.id << $7.place;
-								emit(os.str());
-								os.str("");
-								os << counter << "=" << counter << "-1";
-								emit(os.str());
-								os.str("");
-								
-								os << "goto " << next() - 4;
+
+					for(vector<TableLine>::iterator currLine = tempartureIds.begin(); currLine != tempartureIds.end(); ++currLine){
+							string counter = newTemp($3.type);
+							os << counter << "=s[" << findVarOffset($3.id) << "]";
+							emit(os.str());
+							os.str("");
+							os << "if " << counter << ">0 goto "<< next()+2;
+							emit(os.str());
+							os.str("");
+							if (currLine->id == lastId){
+								$$.nextlist = makelist(next());
+								emit("goto ");
+							} else {
+								os << "goto " << next()+4;
 								emit(os.str());
 								os.str("");
 							}
+							os << "s[" << currLine->offset << "]=s[" << currLine->offset << "]"  << $6.id << $7.place;
+							emit(os.str());
+							os.str("");
+							os << counter << "=" << counter << "-1";
+							emit(os.str());
+							os.str("");
+							
+							os << "goto " << next() - 4;
+							emit(os.str());
+							os.str("");
 						}
 					}
-				}
 
 			| SWITCH LP ForceTempExp N RP LC CasesList RC
 				{
@@ -449,8 +448,6 @@ Exp		  : LP Exp RP
 						emit(os.str());
 					} else if (isTemperture($1.type) && isTemperture($3.type)) {
 						$$.type = $1.type;
-						emit("first " + $1.type);
-						emit("sec " + $3.type);
 						$$.place = newTemp($1.type);
 						string convertedSecArg = genConversionCode($3, $1.type);
 						ostringstream os;
@@ -588,9 +585,8 @@ Exp		  : LP Exp RP
 				}
 			| TRUE
 				{
-					//cout << "TRUE" << endl;
+					$$.type = $1.type;
 					if (isAssignmentStmt){
-						$$.type = $1.type;
 						$$.place = newTemp($1.type);
 						ostringstream os;
 						os << $$.place << "=1";
@@ -645,7 +641,7 @@ Exp		  : LP Exp RP
 			| Exp OR M Exp
 				{
 					//cout << "Exp OR Exp" << endl;
-					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
+					if ($1.type != string("BOOL") || $4.type != string("BOOL")){
 						errorMismatch(yylineno);
 						exit(1);
 					}
@@ -676,7 +672,7 @@ Exp		  : LP Exp RP
 			| Exp AND M Exp
 				{
 					//cout << "Exp AND Exp" << endl;
-					if ($1.type != string("BOOL") || $3.type != string("BOOL")){
+					if ($1.type != string("BOOL") || $4.type != string("BOOL")){
 						errorMismatch(yylineno);
 						exit(1);
 					}
@@ -893,7 +889,7 @@ void findAndSetVarIsAssigned(string id, bool val){
 	}
 }
 
-bool isVarAssigned(string id){
+bool getIsVarAssigned(string id){
 	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
 		if(iter->isVarDefined(id)) {
 			return iter->isVarAssigned(id);
@@ -991,13 +987,9 @@ string genFahrenheitToKelvinCode(string fahVarToConv){
 //creating the ir-code for converting temparture
 //returning the variable name that holds the result of the conversions
 string genConversionCode(YYSTYPE st, string type){
-	emit("st type " + st.type);
-	emit("type " + type);
 	if (st.type == type){
-		emit("*******in");
 		return st.place;
 	}
-	emit("*******out");
 	int numType = convertTempStringToNum(st.type);
 	if (type == string("CELSIUS")){
 		switch (numType){
