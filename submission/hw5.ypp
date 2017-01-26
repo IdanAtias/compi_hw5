@@ -1,0 +1,1035 @@
+%{
+	#include "hw5.hpp"
+	#include "output.hpp"
+	#include "symTable.hpp"
+	#include "bp.hpp"
+	#include <iostream>
+	#include <sstream>
+	#include <stdio.h>
+	#include <vector>
+	#include <stack>
+	
+	using namespace std;
+	using namespace output;
+
+	extern int yylex();
+	extern int yylineno;
+	extern const char* yytext;
+	extern FILE* yyin;
+	
+	void yyerror(const char*);
+	bool isTemperture(string type);
+	bool checkAssignmentTyps(string t1, string t2);
+	string findVarType(string id);
+	int findVarOffset(string id);
+	void printStype(YYSTYPE yst, string msg);
+	bool isVarDefined(string id);
+	void findAndSetVarIsAssigned(string id, bool val);
+	int convertTempStringToNum(string type);
+	bool getIsVarAssigned(string id);
+	string newTemp(string type);
+
+	//gen temp conversions codes
+	string genCelsiusToKelvinCode(string);
+	string genCelsiusToFahrenheitCode(string);
+	
+	string genKelvinToCelsiusCode(string);
+	string genKelvinToFahrenheitCode(string);
+	
+	string genFahrenheitToCelsiusCode(string);
+	string genFahrenheitToKelvinCode(string);
+	
+	string genConversionCode(YYSTYPE st, string type);
+	
+	vector<SymTable> tablesStack;
+	stack<int> offsetStack;
+	stack<list<int> > whileNextlists;
+
+	bool condScopeFlag = false;
+	int whileCounter = 0;
+	
+	int tmpIdx = 1;
+	
+	int isAssignmentStmt = 0;
+
+	#define OFFSET_SIZE 1
+%}
+
+
+%token LP RP LC RC SC CELSIUS FAHRENHEIT KELVIN INT PRINT INPUT ID STRING TRUE FALSE BOOL IF ELSE WHILE BREAK NUM SWITCH CASE COLON FOREACH
+
+%nonassoc IFX
+%nonassoc ELSE
+%right ASSIGN
+%left OR
+%left AND
+%left REL_OP
+%left PLUS MINUS
+%left MULT DIV
+%right NOT
+
+%%   
+
+Prog	:	InitMarker stmts FinishMarker
+
+stmts: stmts stmt
+		{
+			bp($2.nextlist, next());
+        }
+     | stmt
+       {
+			bp($1.nextlist, next());
+       }
+stmt	: 	StartScopeMarker LC stmts RC EndScopeMarker
+				{
+					//cout << "LC StartScopeMarker stmts EndScopeMarker RC" << endl;
+					$$.nextlist = list<int>();
+				}
+			| StartScopeMarkerIfCond Type ID SC
+				{
+					//~ cout << "Type ID SC" << endl;
+					$3.type = $2.type;
+					//~ cout << yytext << endl;
+					//~ cout << condScopeFlag << endl;
+					if (isVarDefined($3.id)) {
+						errorDef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top(), false /*isAssigned*/);
+					int newOffset = offsetStack.top() + OFFSET_SIZE;
+					offsetStack.pop();
+					offsetStack.push(newOffset);		
+					$$.nextlist = list<int>();
+				}
+			| StartScopeMarkerIfCond Type ID ASSIGN setIsAssignment Exp SC
+				{
+					//~ cout << "Type ID ASSIGN Exp SC" << endl;
+					//~ cout << "cond: "<<condScopeFlag << endl;
+					$3.type = $2.type;
+					if (isVarDefined($3.id)) {
+						errorDef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (!checkAssignmentTyps($2.type, $6.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					
+					tablesStack.back().insertVar($3.id, $3.type, offsetStack.top(), true /*isAssigned*/);
+					int newOffset = offsetStack.top() + OFFSET_SIZE;
+					offsetStack.pop();
+					offsetStack.push(newOffset);
+					
+					ostringstream os;
+					if (isTemperture($2.type)){
+						$6.place = genConversionCode($6, $2.type);
+					}
+					os << "s[" << findVarOffset($3.id) << "]" << "=" << $6.place;
+					emit(os.str());
+					$$.nextlist = list<int>();
+					isAssignmentStmt = 0;
+				}
+			| setCondFlagOff ID ASSIGN setIsAssignment Exp SC
+				{
+					//cout << "ID ASSIGN Exp SC" << endl;
+					string idType = findVarType($2.id);
+					if (idType == string("")) {
+						errorUndef(yylineno, $2.id.c_str());
+						exit(1);
+					}
+					
+					if (!checkAssignmentTyps(idType, $5.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					findAndSetVarIsAssigned($2.id, true);
+					ostringstream os;
+					if (isTemperture(idType)){
+						$5.place = genConversionCode($5, idType);
+					}
+					os << "s[" << findVarOffset($2.id) << "]" << "=" << $5.place;
+					emit(os.str());
+					$$.nextlist = list<int>();
+					isAssignmentStmt = 0;
+				}
+			| setCondFlagOff PRINT STRING SC 
+				{ 
+					//cout << "PRINT STRING SC" << endl; 
+					ostringstream os;
+					os << "print " << $3.id;
+					emit(os.str());
+					$$.nextlist = list<int>();	
+				}
+			| setCondFlagOff PRINT ID SC
+				{
+					//cout << "PRINT ID SC" << endl;
+					string idType = findVarType($3.id);
+					if (idType == string("")){
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (idType == string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					
+					ostringstream os;
+					os << "print s[" << findVarOffset($3.id) << "]";
+					emit(os.str());
+					$$.nextlist = list<int>();	
+				}
+			| setCondFlagOff INPUT ID SC
+				{
+					//cout << "INPUT ID SC" << endl;
+					string idType = findVarType($3.id);
+					if (idType == string("")){
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (idType == string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					ostringstream os;
+					os << "input s[" << findVarOffset($3.id) << "]";
+					emit(os.str());
+					$$.nextlist = list<int>();	
+				}
+			| IF LP ForceBoolExp SetCondFlagOn RP M stmt EndScopeMarkerIfCond %prec IFX
+				{
+					//~ cout << "IF LP Exp RP stmt %prec IFX" << endl;
+					bp($3.truelist, $6.quad);
+					$$.nextlist = merge($3.falselist, $7.nextlist);
+				}
+			| IF LP ForceBoolExp SetCondFlagOn RP M stmt EndScopeMarkerIfCond 
+					ELSE SetCondFlagOn N M stmt EndScopeMarkerIfCond
+				{
+					//~ cout << "IF LP Exp RP stmt ELSE stmt" << endl;
+					bp($3.truelist, $6.quad);
+					bp($3.falselist, $12.quad);
+					$$.nextlist = merge(merge($7.nextlist, $13.nextlist), $11.nextlist);
+				}
+			| WHILE LP M ForceBoolExp SetCondFlagOn RP WhileMarker M stmt N EndScopeMarkerIfCond
+				{
+					//cout << "WHILE LP Exp RP WhileMarker stmt" << endl;
+					whileCounter--;
+					bp($4.truelist, $8.quad); //pointing "true" if to stmt
+					bp($10.nextlist, $3.quad); //pointing the goto after the stmt back to the "if"
+					bp($9.nextlist, $3.quad); //pointing the "next" of the stmt back to the "if"
+					$$.nextlist = merge($4.falselist, whileNextlists.top()); //merging next list of while and false list of if
+					whileNextlists.pop(); //update top of whileNextlists
+				}
+			| setCondFlagOff BREAK SC
+				{
+					//~ cout << "BREAK SC" << endl;
+					//~ cout << condScopeFlag << endl;
+					if (whileCounter <= 0) {
+						errorUnexpectedBreak(yylineno);
+						exit(1);
+					}
+					list<int>& topWhileNextlists = whileNextlists.top();
+					topWhileNextlists = merge(topWhileNextlists, makelist(next()));
+					emit("goto ");
+					$$.nextlist = list<int>();
+				}
+			| FOREACH LP ForceIntId TempType RP OP Exp SC
+				{
+					ostringstream os;
+					if (!isVarDefined($3.id)) {
+						errorUndef(yylineno, $3.id.c_str());
+						exit(1);
+					}
+					if (!getIsVarAssigned($3.id)) {
+						findAndSetVarIsAssigned($3.id, true);
+						os << "s[" << findVarOffset($3.id) << "]=2";
+						emit(os.str());
+						os.str("");
+					}
+
+					// get tempartures Ids (of the same type as $4.type) && init un-assinged ids
+					string lastId;
+					vector<TableLine> tempartureIds = vector<TableLine>();
+					for (vector<SymTable>::reverse_iterator symTable = tablesStack.rbegin(); symTable != tablesStack.rend(); ++symTable) {
+						for (vector<TableLine>::const_iterator line=symTable->table.begin(); line != symTable->table.end(); line++){
+							if (line->type == $4.type){
+								if (!line->isAssigned){
+									os << "s[" << line->offset << "]=0";
+									emit(os.str());
+									os.str("");
+									symTable->setIsVarAssigned(line->id, true);
+								}
+								tempartureIds.push_back(*line);
+								lastId = line->id;
+							}
+						}
+					}
+
+					for(vector<TableLine>::iterator currLine = tempartureIds.begin(); currLine != tempartureIds.end(); ++currLine){
+							string counter = newTemp($3.type);
+							os << counter << "=s[" << findVarOffset($3.id) << "]";
+							emit(os.str());
+							os.str("");
+							os << "if " << counter << ">0 goto "<< next()+2;
+							emit(os.str());
+							os.str("");
+							if (currLine->id == lastId){
+								$$.nextlist = makelist(next());
+								emit("goto ");
+							} else {
+								os << "goto " << next()+4;
+								emit(os.str());
+								os.str("");
+							}
+							os << "s[" << currLine->offset << "]=s[" << currLine->offset << "]"  << $6.id << $7.place;
+							emit(os.str());
+							os.str("");
+							os << counter << "=" << counter << "-1";
+							emit(os.str());
+							os.str("");
+							
+							os << "goto " << next() - 4;
+							emit(os.str());
+							os.str("");
+						}
+					}
+
+			| SWITCH LP ForceTempExp N RP LC CasesList RC
+				{
+					//cout << "SWITCH LP Exp RP LC StartScopeMarker CasesList EndScopeMarker RC" << endl;
+					bp($4.nextlist, next()); //preparing the "jump" for the evaluation of the exp.
+					while (!$7.valueList.empty()){
+						 string val = $7.valueList.top();
+						 $7.valueList.pop();
+						 string type = $7.typeList.top();
+						 $7.typeList.pop();
+						 string convertFromType = type;
+						 string convertToType = $3.type;
+						 if (convertFromType != convertToType){
+							YYSTYPE convertedVar;
+							convertedVar.type = convertFromType;
+							string valPlace = newTemp(type);
+							ostringstream os;
+							os << valPlace << "=" << val;
+							emit(os.str());
+							convertedVar.place = valPlace;
+							string convertedPlace = genConversionCode(convertedVar, convertToType);
+							//~ $3.place = convertedPlace;
+							val = convertedPlace;
+						 }
+						 int quad = $7.quadList.top();
+						 $7.quadList.pop();
+						 ostringstream os;
+						 os << "if " << $3.place << "==" << val << " goto " << quad;
+						 emit(os.str());
+					}
+					$$.nextlist = merge($7.nextlist, makelist(next()));
+					emit("goto ");
+				}
+		
+CasesList : CaseStat CasesList { 
+				//cout << "CaseStat CasesList " << endl;
+				$$.quadList = $2.quadList;
+				$$.quadList.push($1.quad);
+				$$.valueList = $2.valueList;
+				$$.valueList.push($1.id);
+				$$.typeList = $2.typeList;
+				$$.typeList.push($1.type);
+				$$.nextlist = merge($2.nextlist, $1.nextlist);
+				}
+			| CaseStat { 
+				//cout << "CaseStat " << endl;
+				$$.quadList = stack<int>();
+				$$.quadList.push($1.quad);
+				$$.valueList = stack<string>();
+				$$.valueList.push($1.id); // id is the "num" in : case num
+				$$.typeList = stack<string>();
+				$$.typeList.push($1.type);
+				$$.nextlist = $1.nextlist;
+				}
+
+CaseStat  : CASE NUM TempType COLON SetCondFlagOn M stmt BREAK SC N EndScopeMarkerIfCond
+				{ 
+					//cout << "CASE NUM TempType COLON StartScopeMarker stmt BREAK SC EndScopeMarker " << endl;
+					$$.quad = $6.quad;
+					$$.type = $3.type;
+					$$.id = $2.id;
+					$$.nextlist = merge($7.nextlist, $10.nextlist);
+				}
+				
+OP				: PLUS 	{ $$.id = "+"; }
+				| MINUS { $$.id = "-"; }
+				| MULT 	{ $$.id = "*"; }
+				| DIV 	{ $$.id = "/"; }
+
+TempType  : CELSIUS
+				{
+					//cout << "CELSIUS" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| FAHRENHEIT
+				{
+					//cout << "FAHRENHEIT" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| KELVIN
+				{
+					//cout << "KELVIN" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			
+Type	  : TempType
+				{
+					//cout << "TempType" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+			| INT
+				{
+					//cout << "INT" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+					//~ printStype($1, "INT");
+					//~ printStype($$, "Type");
+				}
+			| BOOL
+				{
+					//cout << "BOOL" << endl;
+					$$.type = $1.type;
+					//~ $$.val = $1.val;
+				}
+ForceTempExp	: Exp
+					{
+						if (!isTemperture($1.type)) {
+							errorMismatch(yylineno);
+							exit(1);
+						} 
+						$$ = $1;
+					}
+ForceBoolExp	: 	Exp 
+					{
+						//cout << "ForceBoolExp" << endl;
+						if ($1.type != string("BOOL")){
+							errorMismatch(yylineno);
+							exit(1);
+						}
+						//~ condScopeFlag = true;
+						$$ = $1;
+					}
+ForceIntId		: 	ID
+					{
+						string idType = findVarType($1.id);
+						if (idType == string("")) {
+							errorUndef(yylineno, $1.id.c_str());
+							exit(1);
+						} else if (idType != string("INT")){
+							errorMismatch(yylineno);
+							exit(1);
+						}
+						$1.type = string("INT");
+						$$ = $1;
+					}
+	
+Exp		  : LP Exp RP 
+				{
+					//cout << "LP Exp RP" << endl;
+					$$ = $2;
+				}
+			| Exp PLUS Exp
+				{
+					//cout << "Exp PLUS Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						$$.place = newTemp(string("INT"));
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "+" << $3.place;
+						emit(os.str());
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = $1.type;
+						$$.place = newTemp($1.type);
+						string convertedSecArg = genConversionCode($3, $1.type);
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "+" << convertedSecArg;
+						emit(os.str()); 
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| Exp MINUS Exp
+				{
+					//cout << "Exp MINUS Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						$$.place = newTemp(string("INT"));
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "-" << $3.place;
+						emit(os.str());
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = $1.type;
+						$$.place = newTemp($1.type);
+						string convertedSecArg = genConversionCode($3, $1.type);
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "-" << convertedSecArg;
+						emit(os.str()); 
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| Exp MULT Exp
+				{
+						//cout << "Exp MULT Exp" << endl;
+					if ($1.type == string("BOOL") || $3.type == string("BOOL")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}					
+					if (isTemperture($1.type) && isTemperture($3.type)) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						$$.place = newTemp(string("INT"));
+					} else /*1 temp & 1 int*/ {
+						YYSTYPE temp = isTemperture($1.type) ? $1 : $3;
+						YYSTYPE num = !isTemperture($1.type) ? $1 : $3;
+						$$.type = temp.type;
+						$$.place = newTemp(temp.type);
+					}
+					ostringstream os;
+					os << $$.place << "=" << $1.place << "*" << $3.place;
+					emit(os.str());
+				}
+			| Exp DIV Exp
+				{
+					//cout << "Exp DIV Exp" << endl;
+					if ($1.type == string("INT") && $3.type == string("INT")) {
+						$$.type = $1.type;
+						$$.place = newTemp(string("INT"));
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "/" << $3.place;
+						emit(os.str());
+					} else if (isTemperture($1.type) && isTemperture($3.type)) {
+						$$.type = string("INT");
+						$$.place = newTemp(string("INT"));
+						string convertedSecArg = genConversionCode($3, $1.type);
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "/" << convertedSecArg;
+						emit(os.str()); 
+					} else if(isTemperture($1.type) && $3.type == string("INT")) {
+						$$.type = $1.type;
+						$$.place = newTemp($1.type);
+						ostringstream os;
+						os << $$.place << "=" << $1.place << "/" << $3.place;
+						emit(os.str());
+					} else {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			| ID
+				{	
+					//cout << "ID" << endl;
+					string varType = findVarType($1.id);
+					if (varType == string("")) {
+						errorUndef(yylineno, $1.id.c_str());
+						exit(1);
+					}
+					
+					int idOffset = findVarOffset($1.id);
+					ostringstream os;
+					$$.type = varType;
+
+					if (varType == string("BOOL") && !isAssignmentStmt){
+						$$.truelist = makelist(next()); // leave room for backpatching at the "if" stmt
+						os <<  "if s[" << idOffset << "] == 1 goto ";
+						emit(os.str());
+						$$.falselist = makelist(next()); // leave room for backpatching the "goto" stmt
+						emit("goto ");
+					} else {
+						$$.id = $1.id;
+						$$.place = newTemp($1.type);
+						os << $$.place << "=s[" << idOffset << "]";
+						emit(os.str());
+					}
+				}
+			| NUM
+				{
+					//cout << "NUM" << endl;
+					if ($1.type != string("INT")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = $1.type;
+					$$.place = newTemp(string("INT"));
+					ostringstream os;
+					os << $$.place << "=" << $1.id;
+					emit(os.str());
+				}
+			| NUM TempType 
+				{
+					//cout << "NUM TempType " << endl;
+					if (!(isTemperture($2.type)) ||
+					!($1.type == string("INT"))) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = $2.type;
+					$$.place = newTemp($2.type);
+					ostringstream os;
+					os << $$.place << "=" << $1.id;
+					emit(os.str());
+				}
+			| TRUE
+				{
+					$$.type = $1.type;
+					if (isAssignmentStmt){
+						$$.place = newTemp($1.type);
+						ostringstream os;
+						os << $$.place << "=1";
+						emit(os.str());
+					} else {
+						$$.truelist = makelist(next());
+						emit("goto ");
+					}
+				}
+			| FALSE
+				{
+					//cout << "FALSE" << endl;
+					$$.type = $1.type;
+					if (isAssignmentStmt){
+						$$.place = newTemp($1.type);
+						ostringstream os;
+						os << $$.place << "=0";
+						emit(os.str());
+					} else {
+						$$.falselist = makelist(next());
+						emit("goto ");
+					}
+				}
+			| NOT Exp 
+				{
+					//cout << "NOT Exp" << endl;
+					if ($2.type != string("BOOL")) {
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					$$.type = string("BOOL");
+					if (isAssignmentStmt){
+						$$.place = newTemp($2.type);
+						ostringstream os;
+						os << "if " << $2.place << " == 1 goto " << next()+3;
+						emit(os.str());
+						os.str(""); // "clear" os
+						os << $$.place << "=1";
+						emit(os.str());
+						os.str("");
+						os << "goto " << next()+2;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=0";
+						emit(os.str());
+					} else {
+						$$.truelist = $2.falselist;
+						$$.falselist = $2.truelist;
+					}
+					
+				}
+			| Exp OR M Exp
+				{
+					//cout << "Exp OR Exp" << endl;
+					if ($1.type != string("BOOL") || $4.type != string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if(isAssignmentStmt){
+						$$.place = newTemp(string("BOOL"));
+						ostringstream os;
+						os << "if " << $1.place << " == 1 goto " << next()+4;
+						emit(os.str());
+						os.str("");
+						os << "if " << $4.place << " == 1 goto " << next()+3;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=0";
+						emit(os.str());
+						os.str("");
+						os << "goto " << next()+2;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=1";
+						emit(os.str());
+					} else {
+						bp($1.falselist, $3.quad);
+						$$.truelist = merge($1.truelist, $4.truelist);
+						$$.falselist = $4.falselist;
+					}
+					$$.type = string("BOOL");
+				}
+			| Exp AND M Exp
+				{
+					//cout << "Exp AND Exp" << endl;
+					if ($1.type != string("BOOL") || $4.type != string("BOOL")){
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if(isAssignmentStmt){
+						$$.place = newTemp(string("BOOL"));
+						ostringstream os;
+						os << "if " << $1.place << " == 0 goto " << next()+4;
+						emit(os.str());
+						os.str("");
+						os << "if " << $4.place << " == 0 goto " << next()+3;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=1";
+						emit(os.str());
+						os.str("");
+						os << "goto " << next()+2;
+						emit(os.str());
+						os.str("");
+						os << $$.place << "=0";
+						emit(os.str());
+					}
+					else{
+						bp($1.truelist, $3.quad);
+						$$.falselist = merge($1.falselist, $4.falselist);
+						$$.truelist = $4.truelist;
+					}
+					$$.type = string("BOOL");
+				}
+			| Exp REL_OP Exp 
+				{
+					//cout << "Exp REL_OP Exp" << endl;
+					if (isTemperture($1.type) && isTemperture($3.type)) {
+						$3.place = genConversionCode($3, $1.type);	
+					}
+					
+					if (($1.type == string("INT") && $3.type == string("INT")) ||
+							(isTemperture($1.type) && isTemperture($3.type))) {
+						
+							$$.type = string("BOOL");
+							ostringstream os;
+							
+							if ($2.id == string("<=")) {
+									os << $1.place << "=" << $1.place << " -1";
+									emit(os.str());
+									os.str("");
+									$2.id = "<";
+							}
+							
+							if ($2.id == string(">=")) {
+								os << $1.place << "=" << $1.place << " +1";
+								emit(os.str());
+								os.str("");
+								$2.id = ">";	
+							}
+							if (isAssignmentStmt) {
+								$$.place = newTemp(string("BOOL"));
+								os.str("");
+								os << "if " << $1.place << $2.id << $3.place << " goto " << next()+3;
+								emit(os.str());
+								os.str("");
+								os << $$.place << "=0";
+								emit(os.str());
+								os.str("");
+								os << "goto " << next()+2;
+								emit(os.str());
+								os.str("");
+								os << $$.place << "=1";
+								emit(os.str());
+								os.str("");
+							} else {
+								
+								$$.truelist = makelist(next());
+								os << "if " << $1.place << " " << $2.id << " " << $3.place << " goto ";
+								emit(os.str());
+								$$.falselist = makelist(next());
+								emit("goto ");
+							}
+						} else {
+							errorMismatch(yylineno);
+							exit(1);
+						}
+				}
+
+setCondFlagOff	: {
+					condScopeFlag = false;
+				  }
+
+SetCondFlagOn : {
+				//cout << "setCondFlag " << endl;
+				condScopeFlag = true;
+				}
+
+InitMarker	:	{
+					//cout << "InitMarker" << endl;
+					tablesStack.push_back(SymTable());
+					offsetStack.push(0);
+				}
+FinishMarker : 	{
+					//cout << "FinishMarker" << endl;
+					//~ endScope();
+					//~ tablesStack.back().printTable();
+					tablesStack.pop_back();
+					offsetStack.pop();
+				}
+
+WhileMarker	 :	{
+					//cout << "WhileMarker" << endl;
+					whileNextlists.push(list<int>());
+					whileCounter++;
+				}
+			
+
+EndScopeMarker	:	{
+						//cout << "EndScopeMarker" << endl;
+						condScopeFlag = false;
+						//~ endScope();
+						//~ tablesStack.back().printTable();
+						tablesStack.pop_back();
+						offsetStack.pop();
+					}				
+					
+StartScopeMarker	:	{
+							//cout << "StartScopeMarker" << endl;
+							condScopeFlag = false;
+							tablesStack.push_back(SymTable());
+							offsetStack.push(offsetStack.top());
+						}
+
+EndScopeMarkerIfCond	:	{
+								if (condScopeFlag){
+									condScopeFlag = false;
+									//~ endScope();
+									//~ tablesStack.back().printTable();
+									tablesStack.pop_back();
+									offsetStack.pop();
+								}
+							}				
+					
+StartScopeMarkerIfCond	:	{
+								if (condScopeFlag){
+									tablesStack.push_back(SymTable());
+									offsetStack.push(offsetStack.top());
+								}
+							}
+							
+M: {
+	 $$.quad = next();
+   }
+
+N: {
+	$$.nextlist = makelist(next());
+	emit("goto "); 
+   }
+   
+setIsAssignment :
+			{
+				isAssignmentStmt = 1;
+			}
+
+
+%%
+
+string newTemp(string type)
+{
+	ostringstream os;
+	os << "@t" << tmpIdx;
+	tmpIdx++;
+	
+	tablesStack.back().insertVar(os.str(), type, offsetStack.top(), true /*isAssigned*/);
+	int newOffset = offsetStack.top() + OFFSET_SIZE;
+	offsetStack.pop();
+	offsetStack.push(newOffset);
+	
+	os.str("");
+	os << "s[" << newOffset - OFFSET_SIZE << "]";
+	return os.str();	
+}
+
+void yyerror(const char*){
+	errorSyn(yylineno);
+	exit(1);
+}
+
+bool checkAssignmentTyps(string t1, string t2) {	
+	if (t2 == string("BOOL") && t1 != string("BOOL")) return false;
+	if (t2 == string("INT") && t1 != string("INT")) return false;
+	if (isTemperture(t2) && !isTemperture(t1)) return false;
+	
+	return true;
+}
+string findVarType(string id) {
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return iter->getVarType(id);
+		}
+	}
+	return string("");
+}
+
+int findVarOffset(string id){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return iter->getVarOffset(id);
+		}
+	}
+	return -1;
+}
+
+void findAndSetVarIsAssigned(string id, bool val){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			iter->setIsVarAssigned(id, val);
+		}
+	}
+}
+
+bool getIsVarAssigned(string id){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return iter->isVarAssigned(id);
+		}
+	}
+	return false;
+}
+
+bool isVarDefined(string id){
+	for (vector<SymTable>::reverse_iterator iter = tablesStack.rbegin(); iter != tablesStack.rend(); ++iter) {
+		if(iter->isVarDefined(id)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool isTemperture(string type) {
+	return (type == string("FAHRENHEIT") || type == string("CELSIUS") || type == string("KELVIN"));
+}
+
+string genCelsiusToKelvinCode(string celVarToConv){
+	ostringstream os;
+	string res = newTemp(string("KELVIN"));
+	
+	os << res << "=" << celVarToConv << "+273";
+	emit(os.str());
+	
+	return res;
+
+	//return cel + 273
+}
+
+string genCelsiusToFahrenheitCode(string celVarToConv){
+	ostringstream os1, os2, os3;
+	string res = newTemp(string("FAHRENHEIT"));
+	string mulRes = newTemp(string("CELSIUS"));
+	string divAfterMulRes = newTemp(string("CELSIUS"));
+
+	os1 << mulRes << "=" << celVarToConv << "*9";
+	emit(os1.str());
+	
+	os2 << divAfterMulRes << "=" << mulRes << "/5";
+	emit(os2.str());
+	
+	os3 << res << "=" << divAfterMulRes << "+32";
+	emit(os3.str());
+	
+	return res;
+	//return (cel * 9 / 5) + 32;	
+}
+	
+string genKelvinToCelsiusCode(string kelVarToConv){
+	ostringstream os;
+	string res = newTemp(string("CELSIUS"));
+	
+	os << res << "=" << kelVarToConv << "-273";
+	emit(os.str());
+	
+	return res;
+	//return kel - 273;
+}
+
+string genKelvinToFahrenheitCode(string kelVarToConv){
+	string convertedToCelVar = genKelvinToCelsiusCode(kelVarToConv);
+	return genCelsiusToFahrenheitCode(convertedToCelVar);
+}
+
+string genFahrenheitToCelsiusCode(string fahVarToConv){
+	ostringstream os1, os2, os3;
+	string res = newTemp(string("CELSIUS"));
+	string subRes = newTemp(string("FAHRENHEIT"));
+	string mulAfterSubRes = newTemp(string("FAHRENHEIT"));
+
+	os1 << subRes << "=" << fahVarToConv << "-32";
+	emit(os1.str());
+	
+	os2 << mulAfterSubRes << "=" << subRes << "*5";
+	emit(os2.str());
+	
+	os3 << res << "=" << mulAfterSubRes << "/9";
+	emit(os3.str());
+
+	return res;
+	
+	//return (fah - 32) * 5 / 9;
+
+}
+
+string genFahrenheitToKelvinCode(string fahVarToConv){
+	string convertedCelVar = genFahrenheitToCelsiusCode(fahVarToConv);
+	return genCelsiusToKelvinCode(convertedCelVar);
+}
+
+//creating the ir-code for converting temparture
+//returning the variable name that holds the result of the conversions
+string genConversionCode(YYSTYPE st, string type){
+	if (st.type == type){
+		return st.place;
+	}
+	int numType = convertTempStringToNum(st.type);
+	if (type == string("CELSIUS")){
+		switch (numType){
+			case FAHRENHEIT		: return genFahrenheitToCelsiusCode(st.place);
+			case KELVIN			: return genKelvinToCelsiusCode(st.place);
+		}
+	} else if (type == "FAHRENHEIT") {
+	 	switch (numType){
+			case CELSIUS 		: return genCelsiusToFahrenheitCode(st.place);
+			case KELVIN 		: return genKelvinToFahrenheitCode(st.place);
+		}
+	} else { //KELVIN
+		switch (numType){
+			case CELSIUS 		: return genCelsiusToKelvinCode(st.place);
+			case FAHRENHEIT 	: return genFahrenheitToKelvinCode(st.place);
+		}
+	}
+}
+
+int convertTempStringToNum(string type){
+		if (type == string("KELVIN")){
+			return KELVIN;
+		}
+		if (type == string("FAHRENHEIT")){
+			return FAHRENHEIT;
+		}
+		if (type == string("CELSIUS")){
+			return CELSIUS;
+		}
+		return -1;
+}
+
+void printStype(YYSTYPE yst, string msg){
+	cout << msg + ":" << endl;
+	cout << "type = " + yst.type << endl;
+	cout << "id = " + yst.id << endl;
+}
+
+int main() {
+	int parse_res = yyparse();
+	printBuffer();
+	return parse_res;
+}
