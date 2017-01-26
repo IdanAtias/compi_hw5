@@ -1,0 +1,372 @@
+s[0]=583
+s[2]=s[0]-273
+s[1]=s[2]
+print s[1]
+s[3]=583
+s[6]=s[3]-32
+s[7]=s[6]*5
+s[5]=s[7]/9
+s[4]=s[5]
+print s[4]
+s[8]=583
+s[4]=s[8]
+print s[4]
+s[9]=583
+s[11]=s[9]+273
+s[10]=s[11]
+print s[10]
+s[12]=583
+s[14]=s[12]-32
+s[15]=s[14]*5
+s[13]=s[15]/9
+s[16]=s[13]+273
+s[10]=s[16]
+print s[10]
+s[17]=583
+s[10]=s[17]
+print s[10]
+s[18]=583
+s[21]=s[18]*9
+s[22]=s[21]/5
+s[20]=s[22]+32
+s[19]=s[20]
+print s[19]
+s[23]=583
+s[24]=s[23]-273
+s[26]=s[24]*9
+s[27]=s[26]/5
+s[25]=s[27]+32
+s[19]=s[25]
+print s[19]
+s[28]=583
+s[19]=s[28]
+print s[19]
+s[29]=300
+s[30]=6
+s[31]=s[29]/s[30]
+s[32]=s[31]
+print s[32]
+s[33]=300
+s[34]=10
+s[35]=200
+s[37]=s[35]-273
+s[36]=s[34]-s[37]
+if s[33] > s[36] goto 55
+goto 56
+print "success =)"
+s[38]=300
+s[39]=500
+if s[38] > s[39] goto 60
+goto 61
+print "failure =("
+s[40]=300
+s[41]=500
+if s[40] < s[41] goto 65
+goto 66
+print "success =)"
+s[42]=500
+s[43]=300
+if s[42] < s[43] goto 70
+goto 71
+print "failure =("
+s[44]=300
+s[45]=500
+s[44]=s[44] -1
+if s[44] < s[45] goto 76
+goto 77
+print "success =)"
+s[46]=300
+s[47]=300
+s[46]=s[46] -1
+if s[46] < s[47] goto 82
+goto 83
+print "success =)"
+s[48]=500
+s[49]=300
+s[48]=s[48] -1
+if s[48] < s[49] goto 88
+goto 89
+print "failure =("
+s[50]=300
+s[51]=10
+s[52]=200
+s[54]=s[52]-273
+s[53]=s[51]-s[54]
+s[50]=s[50] +1
+if s[50] > s[53] goto 97
+goto 98
+print "success =)"
+s[55]=300
+s[56]=300
+s[55]=s[55] +1
+if s[55] > s[56] goto 103
+goto 104
+print "success =)"
+s[57]=300
+s[58]=500
+s[57]=s[57] +1
+if s[57] > s[58] goto 109
+goto 110
+print "failure =("
+s[59]=300
+s[60]=300
+if s[59] == s[60] goto 114
+goto 115
+print "success =)"
+s[61]=300
+s[62]=500
+if s[61] == s[62] goto 119
+goto 120
+print "failure =("
+s[63]=300
+s[64]=500
+if s[63] != s[64] goto 124
+goto 125
+print "success =)"
+s[65]=300
+s[66]=300
+if s[65] != s[66] goto 129
+goto 130
+print "failure =("
+s[67]=300
+s[68]=10
+s[69]=200
+s[71]=s[69]-273
+s[70]=s[68]+s[71]
+if s[67] > s[70] goto 137
+goto 139
+print "success =)"
+goto 140
+print "failure =("
+s[72]=10
+s[73]=200
+s[75]=s[73]-273
+s[74]=s[72]+s[75]
+s[76]=300
+if s[74] > s[76] goto 147
+goto 149
+print "failure =("
+goto 150
+print "success =)"
+s[77]=300
+s[78]=10
+s[79]=400
+s[80]=s[78]+s[79]
+if s[77] < s[80] goto 156
+goto 158
+print "success =)"
+goto 159
+print "failure =("
+s[81]=10
+s[82]=400
+s[83]=s[81]+s[82]
+s[84]=300
+if s[83] < s[84] goto 165
+goto 167
+print "failure =("
+goto 168
+print "success =)"
+s[85]=300
+s[86]=10
+s[87]=200
+s[89]=s[87]-273
+s[88]=s[86]+s[89]
+s[85]=s[85] -1
+if s[85] < s[88] goto 176
+goto 178
+print "failure =("
+goto 179
+print "success =)"
+s[90]=300
+s[91]=300
+s[90]=s[90] -1
+if s[90] < s[91] goto 184
+goto 186
+print "success =)"
+goto 187
+print "failure =("
+s[92]=300
+s[93]=500
+s[92]=s[92] -1
+if s[92] < s[93] goto 192
+goto 194
+print "success =)"
+goto 195
+print "failure =("
+s[94]=10
+s[95]=10
+s[96]=2
+s[97]=s[95]/s[96]
+s[94]=s[94] +1
+if s[94] > s[97] goto 202
+goto 204
+print "success =)"
+goto 205
+print "failure =("
+s[98]=10
+s[99]=2
+s[100]=s[98]/s[99]
+s[101]=10
+s[100]=s[100] +1
+if s[100] > s[101] goto 212
+goto 214
+print "failure =("
+goto 215
+print "success =)"
+s[102]=10
+s[103]=10
+s[102]=s[102] +1
+if s[102] > s[103] goto 220
+goto 222
+print "success =)"
+goto 223
+print "failure =("
+s[104]=300
+s[105]=10
+s[106]=200
+s[107]=s[105]*s[106]
+if s[104] != s[107] goto 229
+goto 231
+print "success =)"
+goto 232
+print "failure =("
+s[108]=300
+s[109]=10
+s[110]=30
+s[111]=s[109]*s[110]
+if s[108] != s[111] goto 238
+goto 240
+print "failure =("
+goto 241
+print "success =)"
+s[112]=300
+s[113]=10
+s[114]=30
+s[115]=s[113]*s[114]
+if s[112] == s[115] goto 247
+goto 249
+print "success =)"
+goto 250
+print "failure =("
+s[116]=500
+s[117]=10
+s[118]=30
+s[119]=s[117]*s[118]
+if s[116] == s[119] goto 256
+goto 258
+print "failure =("
+goto 259
+print "success =)"
+s[120]=300
+s[121]=300
+s[120]=s[120] +1
+if s[120] > s[121] goto 264
+goto 265
+print "success =)"
+s[122]=300
+s[123]=500
+s[122]=s[122] +1
+if s[122] > s[123] goto 270
+goto 271
+print "failure =("
+s[124]=500
+s[125]=300
+if s[124] > s[125] goto 275
+goto 276
+print "success =)"
+s[126]=300
+s[127]=500
+if s[126] > s[127] goto 280
+goto 281
+print "failure =("
+goto 282
+goto 283
+print "success =)"
+goto 286
+print "failure =("
+goto 290
+goto 288
+print "failure =("
+goto 291
+print "success =)"
+s[128]=5
+s[129]=s[128]
+s[130]=s[129]
+s[131]=0
+if s[130] > s[131] goto 297
+goto 303
+print "this print should appear 5 times!"
+s[132]=s[129]
+s[133]=1
+s[134]=s[132]-s[133]
+s[129]=s[134]
+goto 293
+s[132]=10
+s[129]=s[132]
+s[133]=s[129]
+s[134]=0
+if s[133] > s[134] goto 309
+goto 320
+s[135]=s[129]
+s[136]=5
+if s[135] == s[136] goto 313
+goto 314
+goto 320
+print "this print should appear 5 times before break!"
+s[137]=s[129]
+s[138]=1
+s[139]=s[137]-s[138]
+s[129]=s[139]
+goto 305
+s[135]=0
+s[4]=s[135]
+s[136]=s[4]
+s[137]=0
+if s[136] == s[137] goto 326
+goto 352
+s[138]=5
+s[139]=s[138]
+s[140]=s[139]
+s[141]=0
+if s[140] > s[141] goto 332
+goto 342
+s[142]=s[139]
+s[143]=5
+if s[142] == s[143] goto 336
+goto 337
+goto 342
+s[144]=s[139]
+s[145]=1
+s[146]=s[144]-s[145]
+s[139]=s[146]
+goto 328
+print "this print should appear one time!"
+s[142]=161803
+s[4]=s[142]
+s[143]=s[4]
+s[144]=161803
+if s[143] == s[144] goto 349
+goto 350
+goto 352
+print "this print should not appear!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+goto 322
+print "if this print dosn't appear it means something is f*****up!!!"
+s[138]=300
+goto 361
+print "failure =("
+goto 371
+print "success =)"
+goto 371
+print "failure =("
+goto 371
+if s[138]==5 goto 355
+s[139]=572
+s[141]=s[139]-32
+s[142]=s[141]*5
+s[140]=s[142]/9
+if s[138]==s[140] goto 357
+s[143]=0
+s[144]=s[143]-273
+if s[138]==s[144] goto 359
+goto 371
+print "GOOD JOB!"

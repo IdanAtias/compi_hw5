@@ -1,0 +1,12 @@
+if (true or false) print "b";
+if(not false or true) print "u";
+if(false) print "nasty woman"; else print "s";
+if(false or 3<5) print "h"; else print "sad";
+if(false and false or true) print " ";
+if(3*2 + 10 == 16) print "d";
+if(10+2*5 == 20) print "i"; else if(3>2) print "jet fuel can't"; else if(9*10*10+2*5+1==911) print "melt steel beams";
+if(9*10*10 + 9 + 4/2 == 911) print "d";
+if(1000 - (333 +1) == 666) print " ";
+if(not not (500 - 5 + 5 == 500)) print "9";
+if( 2/2 *3 == 3 ) print "1";
+if(not false and false) print "alternative facts"; else print "1"; 

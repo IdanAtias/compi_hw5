@@ -617,8 +617,8 @@ Exp		  : LP Exp RP
 						errorMismatch(yylineno);
 						exit(1);
 					}
+					$$.type = string("BOOL");
 					if (isAssignmentStmt){
-						$$.type = string("BOOL");
 						$$.place = newTemp($2.type);
 						ostringstream os;
 						os << "if " << $2.place << " == 1 goto " << next()+3;

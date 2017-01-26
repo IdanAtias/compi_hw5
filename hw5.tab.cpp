@@ -2082,8 +2082,8 @@ yyreduce:
 						errorMismatch(yylineno);
 						exit(1);
 					}
+					(yyval).type = string("BOOL");
 					if (isAssignmentStmt){
-						(yyval).type = string("BOOL");
 						(yyval).place = newTemp((yyvsp[0]).type);
 						ostringstream os;
 						os << "if " << (yyvsp[0]).place << " == 1 goto " << next()+3;

@@ -1,1 +1,1 @@
-bool a = true and true;
+if (not true) print "9";
